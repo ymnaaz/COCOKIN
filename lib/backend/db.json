@@ -1,0 +1,125 @@
+{
+  "users": [
+    {
+      "id": "usr-1",
+      "name": "Yumna",
+      "email": "yumna@gmail.com",
+      "password": "password123",
+      "role": "user",
+      "isPremium": false
+    },
+    {
+      "id": "adm-1",
+      "name": "Admin Cocokin",
+      "email": "admin@cocokin.id",
+      "password": "admin123",
+      "role": "admin",
+      "isPremium": true
+    }
+  ],
+  "analysis_history": [
+    {
+      "id": "hist-1",
+      "userEmail": "yumna@gmail.com",
+      "date": "2026-10-20 09:30",
+      "skinTone": "Medium",
+      "skinToneHex": 4287390296,
+      "undertone": "Warm",
+      "undertoneHex": 4292790433,
+      "personalColor": "Warm Autumn",
+      "palette": [
+        { "name": "Deep Espresso", "hex": 4285216795 },
+        { "name": "Warm Caramel", "hex": 4291204206 },
+        { "name": "Soft Sand Peach", "hex": 4292983712 },
+        { "name": "Muted Sage Olive", "hex": 4287540870 }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "id": "prod-1",
+      "name": "Lip Cream",
+      "brand": "Make Over",
+      "shade": "Warm Teracotta",
+      "shadeHex": 4290143051,
+      "price": 45000,
+      "priceLabel": "Rp45.000",
+      "category": "Lip Product",
+      "type": "lip",
+      "undertone": "Warm",
+      "personalColor": "Warm Autumn",
+      "description": "Lip cream bertekstur velvet lembut dengan warna terracotta hangat yang menyatu alami di bibir tanpa membuat kering.",
+      "whyMatch": "Shade Warm Teracotta selaras dengan undertone Warm dan menonjolkan rona kulit Medium.",
+      "allShades": [
+        { "name": "Warm Teracotta", "hex": 4290143051 },
+        { "name": "Caramel Nude", "hex": 4291200109 },
+        { "name": "Dusty Rose", "hex": 4290276217 }
+      ],
+      "shopeeUrl": "https://shopee.co.id/search?keyword=lip%20cream%20warm%20terracotta",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=lip%20cream%20terracotta"
+    },
+    {
+      "id": "prod-2",
+      "name": "Blush",
+      "brand": "Emina",
+      "shade": "Peach Sun",
+      "shadeHex": 4292773739,
+      "price": 55000,
+      "priceLabel": "Rp55.000",
+      "category": "Blush",
+      "type": "blush",
+      "undertone": "Warm",
+      "personalColor": "Warm Autumn",
+      "description": "Pressed powder blush dengan pigmen halus yang memberikan rona pipi hangat alami sepanjang hari.",
+      "whyMatch": "Shade Peach Sun memberikan efek segar alami pada kulit Medium dengan undertone Warm.",
+      "allShades": [
+        { "name": "Peach Sun", "hex": 4292773739 },
+        { "name": "Soft Mauve", "hex": 4291797160 }
+      ],
+      "shopeeUrl": "https://shopee.co.id/search?keyword=blush%20peach%20sun",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=blush%20peach"
+    },
+    {
+      "id": "prod-3",
+      "name": "Eye Shadow",
+      "brand": "Luxcrime",
+      "shade": "Brown",
+      "shadeHex": 4287390284,
+      "price": 125000,
+      "priceLabel": "Rp125.000",
+      "category": "Eye Makeup",
+      "type": "eyeshadow",
+      "undertone": "Warm",
+      "personalColor": "Warm Autumn",
+      "description": "Palet eyeshadow 9 warna dengan kombinasi matte dan shimmer bernuansa cokelat hangat dan champagne.",
+      "whyMatch": "Nuansa earthy brown mempertegas kelopak mata tanpa terlihat berlebihan untuk tampilan harian.",
+      "allShades": [
+        { "name": "Brown Earth", "hex": 4287390284 },
+        { "name": "Cool Taupe", "hex": 4287527810 }
+      ],
+      "shopeeUrl": "https://shopee.co.id/search?keyword=eyeshadow%20palette%20brown",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=eyeshadow%20palette%20brown"
+    },
+    {
+      "id": "prod-4",
+      "name": "Mesh Cushion",
+      "brand": "Somethinc",
+      "shade": "W02 Warm Sand",
+      "shadeHex": 4292456331,
+      "price": 145000,
+      "priceLabel": "Rp145.000",
+      "category": "Complexion",
+      "type": "cushion",
+      "undertone": "Warm",
+      "personalColor": "Warm Autumn",
+      "description": "Cushion ringan dengan coverage medium-to-full yang meratakan warna kulit tanpa membuat wajah terlihat abu-abu.",
+      "whyMatch": "Rona dasar kuning hangat pada shade W02 Warm Sand menyatu pas dengan kulit Medium Warm.",
+      "allShades": [
+        { "name": "W02 Warm Sand", "hex": 4292456331 },
+        { "name": "C01 Cool Ivory", "hex": 4293710274 }
+      ],
+      "shopeeUrl": "https://shopee.co.id/search?keyword=cushion%20warm%20sand",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=cushion%20warm%20sand"
+    }
+  ]
+}
