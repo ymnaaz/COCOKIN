@@ -152,6 +152,48 @@ class _RekomendasiPageState extends State<RekomendasiPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Badge Profil Kulit yang Dicocokkan (Menghubungkan Hasil Analisis dengan Produk)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: CocokinColors.bgSoftPink,
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(color: CocokinColors.borderCard),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF8C6258),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFDEC4A1),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Cocok untuk: Kulit Medium • Warm Undertone',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: CocokinColors.textDark,
+                ),
+              ),
+            ],
+          ),
+        ),
+
         const Text(
           'Temukan makeup produk\nyang cocok untukmu!',
           style: TextStyle(

@@ -54,13 +54,15 @@ class MainMobileShell extends StatefulWidget {
 
 class _MainMobileShellState extends State<MainMobileShell> {
   String currentPage = 'beranda';
+  String _redirectAfterLogin = 'beranda';
   int bottomNavIndex = 0; // 0: Beranda, 1: Cara Kerja, 2: Tentang
   String? loggedInUser;
   Map<String, dynamic> selectedProduct = kCatalogProducts.first;
 
   void navigateTo(String page) {
     setState(() {
-      if (page == 'kamera' && loggedInUser == null) {
+      if ((page == 'kamera' || page == 'rekomendasi') && loggedInUser == null) {
+        _redirectAfterLogin = page;
         currentPage = 'login';
       } else {
         currentPage = page;
@@ -96,7 +98,7 @@ class _MainMobileShellState extends State<MainMobileShell> {
     return 'beranda';
   }
 
-  // AppBar Bersih Selayaknya Aplikasi HP (Tidak Menumpuk!)
+  // AppBar Bersih Selayaknya Aplikasi HP (Dilengkapi Akses Riwayat & Tombol Keluar/Logout)
   Widget buildMobileAppBar() {
     final bool isLanding = currentPage == 'beranda';
 
@@ -154,26 +156,63 @@ class _MainMobileShellState extends State<MainMobileShell> {
           ),
           if (isLanding)
             loggedInUser != null
-                ? Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: CocokinColors.bgSoftPink,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      'Halo, $loggedInUser',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: CocokinColors.textBody,
+                ? Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => navigateTo('riwayat'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: CocokinColors.bgSoftPink,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(
+                            'Halo, $loggedInUser',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: CocokinColors.textBody,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            loggedInUser = null;
+                            currentPage = 'beranda';
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFBEAEA),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: const Text(
+                            'Keluar',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF9E3A3A),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   )
                 : ElevatedButton(
-                    onPressed: () => navigateTo('login'),
+                    onPressed: () {
+                      _redirectAfterLogin = 'beranda';
+                      navigateTo('login');
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: CocokinColors.primaryMauve,
                       foregroundColor: Colors.white,
@@ -238,8 +277,14 @@ class _MainMobileShellState extends State<MainMobileShell> {
         return BerandaPage(
           activeTab: _activeLandingTab,
           isLoggedIn: loggedInUser != null,
-          onStartAnalysis: () =>
-              navigateTo(loggedInUser != null ? 'kamera' : 'login'),
+          onStartAnalysis: () {
+            if (loggedInUser != null) {
+              navigateTo('kamera');
+            } else {
+              _redirectAfterLogin = 'kamera';
+              navigateTo('login');
+            }
+          },
         );
       case 'login':
         return AuthPage(
@@ -249,7 +294,7 @@ class _MainMobileShellState extends State<MainMobileShell> {
           onAuthSuccess: (name) {
             setState(() {
               loggedInUser = name;
-              currentPage = 'kamera';
+              currentPage = _redirectAfterLogin;
             });
           },
         );
@@ -261,7 +306,7 @@ class _MainMobileShellState extends State<MainMobileShell> {
           onAuthSuccess: (name) {
             setState(() {
               loggedInUser = name;
-              currentPage = 'kamera';
+              currentPage = _redirectAfterLogin;
             });
           },
         );
@@ -355,7 +400,7 @@ class _MainMobileShellState extends State<MainMobileShell> {
                 currentPage == 'loading' ||
                 currentPage == 'hasil' ||
                 currentPage == 'riwayat',
-            onTap: () => navigateTo(loggedInUser != null ? 'kamera' : 'login'),
+            onTap: () => navigateTo('kamera'),
           ),
           _buildNavItem(
             icon: Icons.shopping_bag_outlined,
@@ -363,13 +408,7 @@ class _MainMobileShellState extends State<MainMobileShell> {
             label: 'Produk',
             active:
                 currentPage == 'rekomendasi' || currentPage == 'detail_produk',
-            onTap: () {
-              if (loggedInUser != null) {
-                navigateTo('rekomendasi');
-              } else {
-                navigateTo('login');
-              }
-            },
+            onTap: () => navigateTo('rekomendasi'),
           ),
           _buildNavItem(
             icon: Icons.info_outline_rounded,

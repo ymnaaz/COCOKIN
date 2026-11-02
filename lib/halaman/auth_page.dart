@@ -24,10 +24,14 @@ class _AuthPageState extends State<AuthPage> {
   final TextEditingController _passCtrl = TextEditingController();
   final TextEditingController _confirmCtrl = TextEditingController();
   String? _errorMsg;
+  String? _successBanner;
   bool _isSubmitting = false;
 
   Future<void> _handleSubmit() async {
-    setState(() => _errorMsg = null);
+    setState(() {
+      _errorMsg = null;
+      _successBanner = null;
+    });
 
     final name = _nameCtrl.text.trim();
     final email = _emailCtrl.text.trim();
@@ -86,11 +90,22 @@ class _AuthPageState extends State<AuthPage> {
       return;
     }
 
-    // Langkah 4: Simpan State Sesi Pengguna & Arahkan ke Halaman Kamera Analisis
+    // Langkah 4: Jika barusan Daftar (Buat Akun), arahkan ke tab Masuk (Login) dulu
+    if (widget.isRegister) {
+      _passCtrl.clear();
+      _confirmCtrl.clear();
+      setState(() {
+        _successBanner =
+            'Akun berhasil dibuat! Silakan masuk menggunakan akunmu.';
+      });
+      widget.onSwitchMode(false);
+      return;
+    }
+
+    // Langkah 5: Jika Login berhasil, simpan state sesi pengguna
     final userObj = response['user'] as Map<String, dynamic>?;
     final displayName =
-        userObj?['name'] as String? ??
-        (widget.isRegister ? name : email.split('@').first);
+        userObj?['name'] as String? ?? email.split('@').first;
     widget.onAuthSuccess(displayName);
   }
 
@@ -187,6 +202,26 @@ class _AuthPageState extends State<AuthPage> {
             ],
           ),
           const SizedBox(height: 18),
+
+          if (_successBanner != null && !isReg)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF5EC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFC3E2C8)),
+              ),
+              child: Text(
+                _successBanner!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E6B38),
+                ),
+              ),
+            ),
 
           if (_errorMsg != null)
             Container(
