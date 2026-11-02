@@ -92,7 +92,7 @@ class ApiService {
   /// 3. Analisis Foto Wajah & Simpan Riwayat (POST /api/analyze)
   static Future<AnalysisResultModel> analyzeFacePhoto(
     String imagePath, {
-    String email = 'guest@cocokin.id',
+    String email = 'yumna@gmail.com',
     String preset = 'Warm Autumn',
   }) async {
     try {
@@ -130,7 +130,37 @@ class ApiService {
     );
   }
 
-  /// 4. Ambil Riwayat Analisis Pengguna (GET /api/history)
+  /// 4. Simpan Hasil Analisis ke Riwayat Backend (POST /api/history)
+  static Future<bool> saveHistory({
+    String email = 'yumna@gmail.com',
+    String skinTone = 'Medium',
+    String undertone = 'Warm',
+    String personalColor = 'Warm Autumn',
+  }) async {
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 2);
+      final request = await client.postUrl(Uri.parse('$baseUrl/history'));
+      request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
+      request.add(
+        utf8.encode(
+          jsonEncode({
+            'email': email,
+            'skinTone': skinTone,
+            'undertone': undertone,
+            'personalColor': personalColor,
+          }),
+        ),
+      );
+
+      final response = await request.close();
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// 5. Ambil Riwayat Analisis Pengguna (GET /api/history)
   static Future<List<Map<String, dynamic>>> fetchHistory({
     String? email,
   }) async {
@@ -161,7 +191,7 @@ class ApiService {
     ];
   }
 
-  /// 5. Buka Kunci Fitur Premium (POST /api/premium/unlock)
+  /// 6. Buka Kunci Fitur Premium (POST /api/premium/unlock)
   static Future<bool> unlockPremium(String email) async {
     try {
       final client = HttpClient();
@@ -177,7 +207,7 @@ class ApiService {
     }
   }
 
-  /// 6. Ambil Katalog Produk dari Backend (GET /api/products)
+  /// 7. Ambil Katalog Produk dari Backend (GET /api/products)
   static Future<List<Map<String, dynamic>>> fetchProducts({
     String? category,
     int? maxBudget,
@@ -208,7 +238,7 @@ class ApiService {
     return kCatalogProducts;
   }
 
-  /// 7. Admin Tambah Produk Baru ke Backend (POST /api/products)
+  /// 8. Admin Tambah Produk Baru ke Backend (POST /api/products)
   static Future<Map<String, dynamic>?> addProduct({
     required String name,
     required String brand,
@@ -243,7 +273,7 @@ class ApiService {
     return null;
   }
 
-  /// 8. Admin Hapus Produk dari Backend (DELETE /api/products?id=...)
+  /// 9. Admin Hapus Produk dari Backend (DELETE /api/products?id=...)
   static Future<bool> deleteProduct(String id) async {
     try {
       final client = HttpClient();

@@ -6,6 +6,7 @@ import 'halaman/loading_page.dart';
 import 'halaman/hasil_page.dart';
 import 'halaman/rekomendasi_page.dart';
 import 'halaman/detail_produk_page.dart';
+import 'halaman/riwayat_page.dart';
 
 void main() {
   runApp(const CocokinApp());
@@ -77,6 +78,8 @@ class _MainMobileShellState extends State<MainMobileShell> {
         currentPage = 'kamera';
       } else if (currentPage == 'hasil') {
         currentPage = 'kamera';
+      } else if (currentPage == 'riwayat') {
+        currentPage = 'hasil';
       } else if (currentPage == 'rekomendasi') {
         currentPage = 'hasil';
       } else if (currentPage == 'detail_produk') {
@@ -218,6 +221,8 @@ class _MainMobileShellState extends State<MainMobileShell> {
         return 'Proses Analisis';
       case 'hasil':
         return 'Hasil Analisis';
+      case 'riwayat':
+        return 'Riwayat Analisis';
       case 'rekomendasi':
         return 'Rekomendasi';
       case 'detail_produk':
@@ -271,6 +276,15 @@ class _MainMobileShellState extends State<MainMobileShell> {
       case 'hasil':
         return HasilPage(
           onGoToRekomendasi: () => navigateTo('rekomendasi'),
+          onGoToRiwayat: () => navigateTo('riwayat'),
+        );
+      case 'riwayat':
+        return RiwayatPage(
+          userEmail: loggedInUser != null
+              ? '$loggedInUser@gmail.com'
+              : 'yumna@gmail.com',
+          onGoToRekomendasi: () => navigateTo('rekomendasi'),
+          onNewAnalysis: () => navigateTo('kamera'),
         );
       case 'rekomendasi':
         return RekomendasiPage(
@@ -339,7 +353,8 @@ class _MainMobileShellState extends State<MainMobileShell> {
             label: 'Analisis',
             active: currentPage == 'kamera' ||
                 currentPage == 'loading' ||
-                currentPage == 'hasil',
+                currentPage == 'hasil' ||
+                currentPage == 'riwayat',
             onTap: () => navigateTo(loggedInUser != null ? 'kamera' : 'login'),
           ),
           _buildNavItem(

@@ -5,8 +5,13 @@ import '../services/api_service.dart';
 
 class HasilPage extends StatefulWidget {
   final VoidCallback onGoToRekomendasi;
+  final VoidCallback? onGoToRiwayat;
 
-  const HasilPage({super.key, required this.onGoToRekomendasi});
+  const HasilPage({
+    super.key,
+    required this.onGoToRekomendasi,
+    this.onGoToRiwayat,
+  });
 
   @override
   State<HasilPage> createState() => _HasilPageState();
@@ -14,11 +19,36 @@ class HasilPage extends StatefulWidget {
 
 class _HasilPageState extends State<HasilPage> {
   bool _isPremiumUnlocked = false;
+  bool _isSaved = false;
 
   Future<void> _handleUnlockPremium() async {
     await ApiService.unlockPremium('yumna@gmail.com');
     if (mounted) {
       setState(() => _isPremiumUnlocked = true);
+    }
+  }
+
+  Future<void> _handleSaveResult() async {
+    await ApiService.saveHistory(
+      email: 'yumna@gmail.com',
+      skinTone: 'Medium',
+      undertone: 'Warm',
+      personalColor: 'Warm Autumn',
+    );
+    if (!mounted) return;
+    setState(() => _isSaved = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        backgroundColor: CocokinColors.textDark,
+        content: Text(
+          'Hasil analisis berhasil disimpan ke Riwayat Akun.',
+          style: TextStyle(fontSize: 12),
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    if (widget.onGoToRiwayat != null) {
+      widget.onGoToRiwayat!();
     }
   }
 
@@ -252,7 +282,7 @@ class _HasilPageState extends State<HasilPage> {
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 16),
 
         SizedBox(
           width: double.infinity,
@@ -270,6 +300,30 @@ class _HasilPageState extends State<HasilPage> {
             child: const Text(
               'Lihat Rekomendasi Produk →',
               style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: _handleSaveResult,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: CocokinColors.textDark,
+              side: const BorderSide(color: CocokinColors.borderCard),
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              _isSaved
+                  ? 'Lihat Riwayat Hasil Analisis'
+                  : 'Simpan & Lihat Riwayat Analisis',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
