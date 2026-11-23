@@ -49,41 +49,41 @@
       "undertone": "Warm",
       "personalColor": "Warm Autumn",
       "description": "Lip cream bertekstur velvet lembut dengan warna terracotta hangat yang menyatu alami di bibir tanpa membuat kering.",
-      "whyMatch": "Shade Warm Teracotta selaras dengan undertone Warm dan menonjolkan rona kulit Medium.",
+      "whyMatch": "Shade Warm Teracotta selaras dengan undertone Warm dan menonjolkan rona kulit Medium hingga Deep.",
       "allShades": [
         { "name": "Warm Teracotta", "hex": 4290143051 },
         { "name": "Caramel Nude", "hex": 4291200109 },
-        { "name": "Dusty Rose", "hex": 4290276217 }
+        { "name": "Spiced Brick", "hex": 4288431928 }
       ],
-      "shopeeUrl": "https://shopee.co.id/search?keyword=lip%20cream%20warm%20terracotta",
-      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=lip%20cream%20terracotta"
+      "shopeeUrl": "https://shopee.co.id/search?keyword=make%20over%20lip%20cream%20warm%20terracotta",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=make%20over%20lip%20cream%20terracotta"
     },
     {
       "id": "prod-2",
-      "name": "Blush",
+      "name": "Cheek Lit Pressed Blush",
       "brand": "Emina",
       "shade": "Peach Sun",
       "shadeHex": 4292773739,
-      "price": 55000,
-      "priceLabel": "Rp55.000",
+      "price": 42000,
+      "priceLabel": "Rp42.000",
       "category": "Blush",
       "type": "blush",
       "undertone": "Warm",
-      "personalColor": "Warm Autumn",
-      "description": "Pressed powder blush dengan pigmen halus yang memberikan rona pipi hangat alami sepanjang hari.",
-      "whyMatch": "Shade Peach Sun memberikan efek segar alami pada kulit Medium dengan undertone Warm.",
+      "personalColor": "Warm Spring",
+      "description": "Pressed powder blush dengan pigmen halus yang memberikan rona pipi peach hangat alami sepanjang hari.",
+      "whyMatch": "Shade Peach Sun memberikan efek segar bercahaya pada pemilik undertone Warm (Light hingga Medium).",
       "allShades": [
         { "name": "Peach Sun", "hex": 4292773739 },
-        { "name": "Soft Mauve", "hex": 4291797160 }
+        { "name": "Coral Crush", "hex": 4293494644 }
       ],
-      "shopeeUrl": "https://shopee.co.id/search?keyword=blush%20peach%20sun",
-      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=blush%20peach"
+      "shopeeUrl": "https://shopee.co.id/search?keyword=emina%20blush%20peach%20sun",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=emina%20blush%20peach"
     },
     {
       "id": "prod-3",
-      "name": "Eye Shadow",
+      "name": "Ultra Light Eyeshadow Quad",
       "brand": "Luxcrime",
-      "shade": "Brown",
+      "shade": "Brown Earth",
       "shadeHex": 4287390284,
       "price": 125000,
       "priceLabel": "Rp125.000",
@@ -91,18 +91,18 @@
       "type": "eyeshadow",
       "undertone": "Warm",
       "personalColor": "Warm Autumn",
-      "description": "Palet eyeshadow 9 warna dengan kombinasi matte dan shimmer bernuansa cokelat hangat dan champagne.",
-      "whyMatch": "Nuansa earthy brown mempertegas kelopak mata tanpa terlihat berlebihan untuk tampilan harian.",
+      "description": "Palet eyeshadow dengan kombinasi matte dan shimmer bernuansa cokelat hangat, bronze, dan champagne.",
+      "whyMatch": "Nuansa earthy brown mempertegas kelopak mata secara natural untuk pemilik undertone Warm.",
       "allShades": [
         { "name": "Brown Earth", "hex": 4287390284 },
-        { "name": "Cool Taupe", "hex": 4287527810 }
+        { "name": "Golden Bronze", "hex": 4290416978 }
       ],
-      "shopeeUrl": "https://shopee.co.id/search?keyword=eyeshadow%20palette%20brown",
-      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=eyeshadow%20palette%20brown"
+      "shopeeUrl": "https://shopee.co.id/search?keyword=luxcrime%20eyeshadow%20palette%20brown",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=luxcrime%20eyeshadow%20palette%20brown"
     },
     {
       "id": "prod-4",
-      "name": "Mesh Cushion",
+      "name": "Copy Paste Mesh Cushion",
       "brand": "Somethinc",
       "shade": "W02 Warm Sand",
       "shadeHex": 4292456331,
@@ -113,13 +113,120 @@
       "undertone": "Warm",
       "personalColor": "Warm Autumn",
       "description": "Cushion ringan dengan coverage medium-to-full yang meratakan warna kulit tanpa membuat wajah terlihat abu-abu.",
-      "whyMatch": "Rona dasar kuning hangat pada shade W02 Warm Sand menyatu pas dengan kulit Medium Warm.",
+      "whyMatch": "Rona dasar kuning hangat pada shade W02 Warm Sand menyatu pas dengan kulit Warm Undertone.",
       "allShades": [
+        { "name": "W01 Warm Ivory", "hex": 4293776054 },
         { "name": "W02 Warm Sand", "hex": 4292456331 },
-        { "name": "C01 Cool Ivory", "hex": 4293710274 }
+        { "name": "W03 Warm Honey", "hex": 4290079070 }
       ],
-      "shopeeUrl": "https://shopee.co.id/search?keyword=cushion%20warm%20sand",
-      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=cushion%20warm%20sand"
+      "shopeeUrl": "https://shopee.co.id/search?keyword=somethinc%20cushion%20warm%20sand",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=somethinc%20cushion%20warm%20sand"
+    },
+    {
+      "id": "prod-5",
+      "name": "Colorfit Velvet Matte Lip Mousse",
+      "brand": "Wardah",
+      "shade": "09 Ombre Charmer (Mauve Berry)",
+      "shadeHex": 4290145155,
+      "price": 48000,
+      "priceLabel": "Rp48.000",
+      "category": "Lip Product",
+      "type": "lip",
+      "undertone": "Cool",
+      "personalColor": "Cool Summer",
+      "description": "Lip mousse lembut dengan hasil powdery matte bernuansa rosy mauve dan berry sejuk yang tahan lama.",
+      "whyMatch": "Pigmen blue-based mauve & berry pada shade ini langsung mencerahkan wajah pemilik Cool Undertone.",
+      "allShades": [
+        { "name": "09 Mauve Berry", "hex": 4290145155 },
+        { "name": "14 Dainty Plum", "hex": 4287438434 }
+      ],
+      "shopeeUrl": "https://shopee.co.id/search?keyword=wardah%20colorfit%20lip%20mousse%20mauve",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=wardah%20colorfit%20lip%20mousse%20mauve"
+    },
+    {
+      "id": "prod-6",
+      "name": "Flush Silky Blush",
+      "brand": "Rose All Day",
+      "shade": "Rosy Mauve",
+      "shadeHex": 4291793572,
+      "price": 79000,
+      "priceLabel": "Rp79.000",
+      "category": "Blush",
+      "type": "blush",
+      "undertone": "Cool",
+      "personalColor": "Cool Summer",
+      "description": "Blush silky berpigmentasi lembut dengan rona cool dusty pink yang menyatu mulus di pipi.",
+      "whyMatch": "Warna Rosy Mauve memberikan rona merona alami tanpa terlihat oranye pada kulit Cool Undertone.",
+      "allShades": [
+        { "name": "Rosy Mauve", "hex": 4291793572 },
+        { "name": "Berry Pop", "hex": 4289545864 }
+      ],
+      "shopeeUrl": "https://shopee.co.id/search?keyword=rose%20all%20day%20blush%20mauve",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=rose%20all%20day%20blush%20mauve"
+    },
+    {
+      "id": "prod-7",
+      "name": "Eyeshadow Quad Cool Edition",
+      "brand": "BLP Beauty",
+      "shade": "Cool Taupe & Plum",
+      "shadeHex": 4287527810,
+      "price": 119000,
+      "priceLabel": "Rp119.000",
+      "category": "Eye Makeup",
+      "type": "eyeshadow",
+      "undertone": "Cool",
+      "personalColor": "Cool Winter",
+      "description": "Palet eyeshadow 4 warna bernuansa cool taupe, dusty plum, danicy shimmer untuk dimensi mata yang elegan.",
+      "whyMatch": "Tone abu-kecokelatan sejuk (Cool Taupe) tidak membuat mata terlihat kusam pada pemilik Cool Undertone.",
+      "allShades": [
+        { "name": "Cool Taupe", "hex": 4287527810 },
+        { "name": "Smoky Plum", "hex": 4285419630 }
+      ],
+      "shopeeUrl": "https://shopee.co.id/search?keyword=blp%20eyeshadow%20taupe",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=blp%20eyeshadow%20taupe"
+    },
+    {
+      "id": "prod-8",
+      "name": "Hooman Breathable Cushion",
+      "brand": "Somethinc",
+      "shade": "C01 Cool Ivory / C03 Cool Beige",
+      "shadeHex": 4293315268,
+      "price": 149000,
+      "priceLabel": "Rp149.000",
+      "category": "Complexion",
+      "type": "cushion",
+      "undertone": "Cool",
+      "personalColor": "Cool Summer",
+      "description": "Breathable cushion dengan hasil healthy-matte dan rona dasar pink-neutral yang mencegah oksidasi kekuningan.",
+      "whyMatch": "Diformulasikan khusus dengan cool-pink base sehingga menyatu sempurna pada kulit Cool Undertone.",
+      "allShades": [
+        { "name": "C01 Cool Ivory (Light)", "hex": 4293710274 },
+        { "name": "C03 Cool Beige (Medium)", "hex": 4291601066 },
+        { "name": "C05 Cool Cocoa (Deep)", "hex": 4285879622 }
+      ],
+      "shopeeUrl": "https://shopee.co.id/search?keyword=somethinc%20cushion%20cool",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=somethinc%20cushion%20cool"
+    },
+    {
+      "id": "prod-9",
+      "name": "Airy Lip Tint",
+      "brand": "Barenbliss",
+      "shade": "03 Almond Rose",
+      "shadeHex": 4289948788,
+      "price": 59000,
+      "priceLabel": "Rp59.000",
+      "category": "Lip Product",
+      "type": "lip",
+      "undertone": "Neutral",
+      "personalColor": "Warm Autumn",
+      "description": "Lip tint glossy ringan dengan rona rosewood-almond seimbang untuk semua warna kulit.",
+      "whyMatch": "Perpaduan pigmen rose dan nude hangat cocok untuk pemilik Neutral, Warm, maupun Cool Undertone.",
+      "allShades": [
+        { "name": "03 Almond Rose", "hex": 4289948788 },
+        { "name": "05 Choco Berry", "hex": 4287382874 }
+      ],
+      "shopeeUrl": "https://shopee.co.id/search?keyword=barenbliss%20lip%20tint%20rose",
+      "tokopediaUrl": "https://www.tokopedia.com/search?st=product&q=barenbliss%20lip%20tint%20rose"
     }
   ]
 }

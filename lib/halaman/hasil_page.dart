@@ -1,14 +1,19 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../models/product_model.dart';
 import '../services/api_service.dart';
 
 class HasilPage extends StatefulWidget {
+  final AnalysisResultModel analysisResult;
+  final String userEmail;
   final VoidCallback onGoToRekomendasi;
   final VoidCallback? onGoToRiwayat;
 
   const HasilPage({
     super.key,
+    required this.analysisResult,
+    this.userEmail = 'yumna@gmail.com',
     required this.onGoToRekomendasi,
     this.onGoToRiwayat,
   });
@@ -22,18 +27,23 @@ class _HasilPageState extends State<HasilPage> {
   bool _isSaved = false;
 
   Future<void> _handleUnlockPremium() async {
-    await ApiService.unlockPremium('yumna@gmail.com');
+    await ApiService.unlockPremium(widget.userEmail);
     if (mounted) {
       setState(() => _isPremiumUnlocked = true);
     }
   }
 
   Future<void> _handleSaveResult() async {
+    final res = widget.analysisResult;
     await ApiService.saveHistory(
-      email: 'yumna@gmail.com',
-      skinTone: 'Medium',
-      undertone: 'Warm',
-      personalColor: 'Warm Autumn',
+      email: widget.userEmail,
+      skinTone: res.skinTone,
+      skinToneHex: res.skinToneHex,
+      undertone: res.undertone,
+      undertoneHex: res.undertoneHex,
+      personalColor: res.personalColor,
+      palette: res.palette,
+      karakteristik: res.summary,
     );
     if (!mounted) return;
     setState(() => _isSaved = true);
@@ -54,10 +64,14 @@ class _HasilPageState extends State<HasilPage> {
 
   @override
   Widget build(BuildContext context) {
+    final res = widget.analysisResult;
+    final hexCodeStr =
+        '#${(res.skinToneHex & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+
     return Column(
       children: [
         const Text(
-          'HASIL COLOR ANALYSIS',
+          'HASIL AI COLOR ANALYSIS',
           style: TextStyle(
             fontSize: 10.5,
             letterSpacing: 1.2,
@@ -77,13 +91,13 @@ class _HasilPageState extends State<HasilPage> {
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
-          'Berikut hasil analisis warna personalmu.',
-          style: TextStyle(fontSize: 12.5, color: CocokinColors.textBody),
+        Text(
+          'Tingkat keyakinan model AI: ${res.confidence} • Warna Kulit: $hexCodeStr',
+          style: const TextStyle(fontSize: 12, color: CocokinColors.textBody),
         ),
         const SizedBox(height: 18),
 
-        // 2 Kartu Terbuka: Skin Tone (Medium) & Undertone (Warm)
+        // 2 Kartu Terbuka Dinamis dari Hasil AI: Skin Tone & Undertone
         Row(
           children: [
             Expanded(
@@ -102,25 +116,26 @@ class _HasilPageState extends State<HasilPage> {
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF8C6258),
+                      decoration: BoxDecoration(
+                        color: Color(res.skinToneHex),
                         shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Medium',
-                      style: TextStyle(
+                    Text(
+                      res.skinTone,
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: CocokinColors.textDark,
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      'Skin Tone',
-                      style: TextStyle(
-                        fontSize: 11.5,
+                    Text(
+                      'Skin Tone ($hexCodeStr)',
+                      style: const TextStyle(
+                        fontSize: 11,
                         color: CocokinColors.textMuted,
                       ),
                     ),
@@ -145,15 +160,19 @@ class _HasilPageState extends State<HasilPage> {
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFDEC4A1),
+                      decoration: BoxDecoration(
+                        color: Color(res.undertoneHex),
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: CocokinColors.borderLight,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Warm',
-                      style: TextStyle(
+                    Text(
+                      res.undertone,
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: CocokinColors.textDark,
@@ -173,7 +192,37 @@ class _HasilPageState extends State<HasilPage> {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
+
+        // Metrik Ilmiah Pengolahan Citra Digital (CIE-L*a*b* & ITA) jika tersedia dari AI
+        if (res.metrics != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: CocokinColors.borderLight),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildMetricItem(
+                  'Luminance (L*)',
+                  '${res.metrics!['Luminance_L'] ?? '-'}',
+                ),
+                _buildMetricItem(
+                  'Sudut ITA',
+                  '${res.metrics!['ITA'] ?? '-'}°',
+                ),
+                _buildMetricItem(
+                  'Rasio b*/a*',
+                  '${res.metrics!['ratio_b_a'] ?? '-'}',
+                ),
+              ],
+            ),
+          ),
 
         // Kartu Personal Color: Di-blur & Diberi Gembok untuk Fitur Premium
         Container(
@@ -205,18 +254,18 @@ class _HasilPageState extends State<HasilPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Warm Autumn',
-                          style: TextStyle(
+                        Text(
+                          res.personalColor,
+                          style: const TextStyle(
                             fontSize: 19,
                             fontWeight: FontWeight.w700,
                             color: CocokinColors.textDark,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Palet warna hangat dengan nuansa earthy yang bisa kamu jadikan referensi.',
-                          style: TextStyle(
+                        Text(
+                          res.summary,
+                          style: const TextStyle(
                             fontSize: 12,
                             color: CocokinColors.textBody,
                           ),
@@ -224,18 +273,15 @@ class _HasilPageState extends State<HasilPage> {
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            for (final hex in [
-                              const Color(0xFF6B381B),
-                              const Color(0xFFC6946E),
-                              const Color(0xFFE1BBA0),
-                              const Color(0xFF8EAE86),
-                            ])
+                            for (final item in res.palette)
                               Expanded(
                                 child: Container(
                                   height: 42,
                                   margin: const EdgeInsets.only(right: 8),
                                   decoration: BoxDecoration(
-                                    color: hex,
+                                    color: Color(
+                                      (item['hex'] as num).toInt(),
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
@@ -326,6 +372,25 @@ class _HasilPageState extends State<HasilPage> {
               ),
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricItem(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: CocokinColors.primaryMauve,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: CocokinColors.textMuted),
         ),
       ],
     );

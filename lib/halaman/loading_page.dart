@@ -1,36 +1,60 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../models/product_model.dart';
 import '../services/api_service.dart';
+import 'kamera_page.dart';
 
 class LoadingPage extends StatefulWidget {
-  final VoidCallback onFinish;
+  final KameraCapturePayload? capturePayload;
+  final String userEmail;
+  final ValueChanged<AnalysisResultModel> onFinish;
 
-  const LoadingPage({super.key, required this.onFinish});
+  const LoadingPage({
+    super.key,
+    this.capturePayload,
+    this.userEmail = 'yumna@gmail.com',
+    required this.onFinish,
+  });
 
   @override
   State<LoadingPage> createState() => _LoadingPageState();
 }
 
 class _LoadingPageState extends State<LoadingPage> {
-  double _progress = 0.35;
-  Timer? _timer;
+  double _progress = 0.25;
+  String _statusText = 'Mengekstrak ROI kulit wajah & ruang warna CIE-L*a*b*...';
+  AnalysisResultModel? _result;
+  bool _isAnalyzing = true;
 
   @override
   void initState() {
     super.initState();
-    ApiService.analyzeFacePhoto('kamera_wajah.png');
-    _timer = Timer(const Duration(milliseconds: 900), () {
-      if (mounted) {
-        setState(() => _progress = 0.85);
-      }
-    });
+    _runAiAnalysis();
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  Future<void> _runAiAnalysis() async {
+    final payload = widget.capturePayload;
+    setState(() {
+      _progress = 0.45;
+      _statusText = 'Menghitung Luminance (L*), ITA, dan rasio kromatik b*/a*...';
+    });
+
+    final res = await ApiService.analyzeFacePhoto(
+      payload?.imagePath ?? 'kamera_wajah.png',
+      imageBytes: payload?.imageBytes,
+      sampleKey: payload?.sampleKey ?? 'sample_medium_warm',
+      email: widget.userEmail,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _result = res;
+      _progress = 1.0;
+      _isAnalyzing = false;
+      _statusText =
+          'Analisis selesai! Terdeteksi Skin Tone ${res.skinTone} • ${res.undertone} Undertone (${res.confidence})';
+    });
   }
 
   @override
@@ -39,7 +63,7 @@ class _LoadingPageState extends State<LoadingPage> {
       children: [
         const SizedBox(height: 8),
         const Text(
-          'COCOKIN COLOR ANALYSIS',
+          'COCOKIN AI COLOR ANALYSIS',
           style: TextStyle(
             fontSize: 10.5,
             letterSpacing: 1.2,
@@ -58,33 +82,37 @@ class _LoadingPageState extends State<LoadingPage> {
             borderRadius: BorderRadius.circular(18),
           ),
           alignment: Alignment.center,
-          child: const Icon(
-            Icons.tag_faces_outlined,
+          child: Icon(
+            _isAnalyzing
+                ? Icons.tag_faces_outlined
+                : Icons.check_circle_outline_rounded,
             size: 52,
             color: CocokinColors.primaryMauve,
           ),
         ),
         const SizedBox(height: 22),
 
-        const Text(
-          'Sedang mengenali warna\nterbaikmu',
+        Text(
+          _isAnalyzing
+              ? 'Sedang mengenali warna\nterbaikmu'
+              : 'Analisis AI Selesai!',
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: CocokinColors.textDark,
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Tunggu sebentar, kami sedang menganalisis karakteristik warna kulitmu.',
+        Text(
+          _statusText,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12.5, color: CocokinColors.textBody),
+          style: const TextStyle(fontSize: 12.5, color: CocokinColors.textBody),
         ),
         const SizedBox(height: 24),
 
         const Text(
-          'Analisis warna kulit',
+          'Analisis warna kulit (RGB, HSV, CIE-Lab & ITA)',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -129,7 +157,13 @@ class _LoadingPageState extends State<LoadingPage> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: widget.onFinish,
+            onPressed: _isAnalyzing
+                ? null
+                : () {
+                    if (_result != null) {
+                      widget.onFinish(_result!);
+                    }
+                  },
             style: ElevatedButton.styleFrom(
               backgroundColor: CocokinColors.primaryMauve,
               foregroundColor: Colors.white,
@@ -139,9 +173,14 @@ class _LoadingPageState extends State<LoadingPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text(
-              'Lihat hasil analisis →',
-              style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+            child: Text(
+              _isAnalyzing
+                  ? 'Memproses dengan AI...'
+                  : 'Lihat hasil analisis →',
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),

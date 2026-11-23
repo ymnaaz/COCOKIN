@@ -57,6 +57,10 @@ class AnalysisResultModel {
   final String undertone;
   final int undertoneHex;
   final String personalColor;
+  final String summary;
+  final String confidence;
+  final List<Map<String, dynamic>> palette;
+  final Map<String, dynamic>? metrics;
   final bool isPremiumLocked;
 
   const AnalysisResultModel({
@@ -65,16 +69,45 @@ class AnalysisResultModel {
     required this.undertone,
     required this.undertoneHex,
     required this.personalColor,
+    this.summary =
+        'Palet warna hangat dengan nuansa earthy yang bisa kamu jadikan referensi.',
+    this.confidence = '85.0%',
+    this.palette = const [
+      {'name': 'Deep Espresso', 'hex': 0xFF6B381B},
+      {'name': 'Warm Caramel', 'hex': 0xFFC6946E},
+      {'name': 'Soft Sand Peach', 'hex': 0xFFE1BBA0},
+      {'name': 'Muted Sage Olive', 'hex': 0xFF8EAE86},
+    ],
+    this.metrics,
     this.isPremiumLocked = true,
   });
 
   factory AnalysisResultModel.fromJson(Map<String, dynamic> json) {
+    final rawPalette = json['palette'] as List?;
+    final parsedPalette = rawPalette != null
+        ? rawPalette
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList()
+        : const [
+            {'name': 'Deep Espresso', 'hex': 0xFF6B381B},
+            {'name': 'Warm Caramel', 'hex': 0xFFC6946E},
+            {'name': 'Soft Sand Peach', 'hex': 0xFFE1BBA0},
+            {'name': 'Muted Sage Olive', 'hex': 0xFF8EAE86},
+          ];
+
     return AnalysisResultModel(
       skinTone: json['skinTone'] as String? ?? 'Medium',
-      skinToneHex: json['skinToneHex'] as int? ?? 0xFF8C6258,
+      skinToneHex: (json['skinToneHex'] as num?)?.toInt() ?? 0xFF8C6258,
       undertone: json['undertone'] as String? ?? 'Warm',
-      undertoneHex: json['undertoneHex'] as int? ?? 0xFFDEC4A1,
+      undertoneHex: (json['undertoneHex'] as num?)?.toInt() ?? 0xFFDEC4A1,
       personalColor: json['personalColor'] as String? ?? 'Warm Autumn',
+      summary: json['summary'] as String? ??
+          'Palet warna referensi yang selaras dengan karakteristik rona kulitmu.',
+      confidence: json['confidence'] as String? ?? '85.0%',
+      palette: parsedPalette,
+      metrics: json['metrics'] != null
+          ? Map<String, dynamic>.from(json['metrics'] as Map)
+          : null,
       isPremiumLocked: json['isPremiumLocked'] as bool? ?? true,
     );
   }

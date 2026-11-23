@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../models/product_model.dart';
 import '../services/api_service.dart';
 
 const List<Map<String, dynamic>> kCatalogProducts = [
@@ -91,9 +92,14 @@ const List<Map<String, dynamic>> kCatalogProducts = [
 ];
 
 class RekomendasiPage extends StatefulWidget {
+  final AnalysisResultModel? analysisResult;
   final ValueChanged<Map<String, dynamic>> onSelectProduct;
 
-  const RekomendasiPage({super.key, required this.onSelectProduct});
+  const RekomendasiPage({
+    super.key,
+    this.analysisResult,
+    required this.onSelectProduct,
+  });
 
   @override
   State<RekomendasiPage> createState() => _RekomendasiPageState();
@@ -126,7 +132,10 @@ class _RekomendasiPageState extends State<RekomendasiPage> {
   }
 
   Future<void> _loadProductsFromBackend() async {
-    final fetched = await ApiService.fetchProducts(category: _selectedCat);
+    final fetched = await ApiService.fetchProducts(
+      category: _selectedCat,
+      undertone: widget.analysisResult?.undertone,
+    );
     if (mounted && fetched.isNotEmpty) {
       setState(() => _products = fetched);
     }
@@ -152,7 +161,7 @@ class _RekomendasiPageState extends State<RekomendasiPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Badge Profil Kulit yang Dicocokkan (Menghubungkan Hasil Analisis dengan Produk)
+        // Badge Profil Kulit yang Dicocokkan (Menghubungkan Hasil Analisis AI dengan Produk)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           margin: const EdgeInsets.only(bottom: 12),
@@ -167,8 +176,10 @@ class _RekomendasiPageState extends State<RekomendasiPage> {
               Container(
                 width: 12,
                 height: 12,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF8C6258),
+                decoration: BoxDecoration(
+                  color: Color(
+                    widget.analysisResult?.skinToneHex ?? 0xFF8C6258,
+                  ),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -176,15 +187,17 @@ class _RekomendasiPageState extends State<RekomendasiPage> {
               Container(
                 width: 12,
                 height: 12,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFDEC4A1),
+                decoration: BoxDecoration(
+                  color: Color(
+                    widget.analysisResult?.undertoneHex ?? 0xFFDEC4A1,
+                  ),
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
-                'Cocok untuk: Kulit Medium • Warm Undertone',
-                style: TextStyle(
+              Text(
+                'Cocok untuk: Kulit ${widget.analysisResult?.skinTone ?? 'Medium'} • ${widget.analysisResult?.undertone ?? 'Warm'} Undertone',
+                style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: CocokinColors.textDark,

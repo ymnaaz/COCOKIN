@@ -7,6 +7,7 @@ import 'halaman/hasil_page.dart';
 import 'halaman/rekomendasi_page.dart';
 import 'halaman/detail_produk_page.dart';
 import 'halaman/riwayat_page.dart';
+import 'models/product_model.dart';
 
 void main() {
   runApp(const CocokinApp());
@@ -58,6 +59,14 @@ class _MainMobileShellState extends State<MainMobileShell> {
   int bottomNavIndex = 0; // 0: Beranda, 1: Cara Kerja, 2: Tentang
   String? loggedInUser;
   Map<String, dynamic> selectedProduct = kCatalogProducts.first;
+  KameraCapturePayload? _capturedPayload;
+  AnalysisResultModel _latestAnalysisResult = const AnalysisResultModel(
+    skinTone: 'Medium',
+    skinToneHex: 0xFF8C6258,
+    undertone: 'Warm',
+    undertoneHex: 0xFFDEC4A1,
+    personalColor: 'Warm Autumn',
+  );
 
   void navigateTo(String page) {
     setState(() {
@@ -312,27 +321,46 @@ class _MainMobileShellState extends State<MainMobileShell> {
         );
       case 'kamera':
         return KameraPage(
-          onCapture: () => navigateTo('loading'),
+          onCapture: (payload) {
+            setState(() {
+              _capturedPayload = payload;
+            });
+            navigateTo('loading');
+          },
         );
       case 'loading':
         return LoadingPage(
-          onFinish: () => navigateTo('hasil'),
+          capturePayload: _capturedPayload,
+          userEmail: loggedInUser != null
+              ? '${loggedInUser!.toLowerCase()}@gmail.com'
+              : 'yumna@gmail.com',
+          onFinish: (result) {
+            setState(() {
+              _latestAnalysisResult = result;
+            });
+            navigateTo('hasil');
+          },
         );
       case 'hasil':
         return HasilPage(
+          analysisResult: _latestAnalysisResult,
+          userEmail: loggedInUser != null
+              ? '${loggedInUser!.toLowerCase()}@gmail.com'
+              : 'yumna@gmail.com',
           onGoToRekomendasi: () => navigateTo('rekomendasi'),
           onGoToRiwayat: () => navigateTo('riwayat'),
         );
       case 'riwayat':
         return RiwayatPage(
           userEmail: loggedInUser != null
-              ? '$loggedInUser@gmail.com'
+              ? '${loggedInUser!.toLowerCase()}@gmail.com'
               : 'yumna@gmail.com',
           onGoToRekomendasi: () => navigateTo('rekomendasi'),
           onNewAnalysis: () => navigateTo('kamera'),
         );
       case 'rekomendasi':
         return RekomendasiPage(
+          analysisResult: _latestAnalysisResult,
           onSelectProduct: (prod) {
             setState(() {
               selectedProduct = prod;

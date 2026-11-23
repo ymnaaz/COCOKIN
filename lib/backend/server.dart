@@ -76,7 +76,7 @@ Future<void> main() async {
     // 4. Endpoint Proses Analisis Warna Kulit (FR-03, FR-04, FR-05)
     if (path == '/api/analyze' && method == 'POST') {
       final body = await _readJsonBody(request);
-      final res = analysisController.handleAnalyzePhoto(body);
+      final res = await analysisController.handleAnalyzePhoto(body);
       await _sendJson(
         request.response,
         res['statusCode'] as int,

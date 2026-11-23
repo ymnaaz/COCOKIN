@@ -1,8 +1,26 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../services/api_service.dart';
+
+class KameraCapturePayload {
+  final String imagePath;
+  final Uint8List? imageBytes;
+  final String sampleKey;
+  final String label;
+
+  const KameraCapturePayload({
+    required this.imagePath,
+    this.imageBytes,
+    this.sampleKey = 'sample_medium_warm',
+    this.label = 'Sampel Wajah Medium Warm',
+  });
+}
 
 class KameraPage extends StatefulWidget {
-  final VoidCallback onCapture;
+  final ValueChanged<KameraCapturePayload> onCapture;
 
   const KameraPage({super.key, required this.onCapture});
 
@@ -13,6 +31,228 @@ class KameraPage extends StatefulWidget {
 class _KameraPageState extends State<KameraPage> {
   bool _isPreviewStep = false;
   bool _isCameraActive = true;
+  Uint8List? _selectedBytes;
+  String _selectedPath = '';
+  String _selectedSampleKey = 'sample_medium_warm';
+  String _selectedLabel = 'Foto Wajah (Medium / Warm)';
+
+  static const List<Map<String, dynamic>> _sampleFaces = [
+    {
+      'key': 'sample_light',
+      'label': 'Wajah 1 (Terang)',
+      'path':
+          r'D:\Semester 5\IPPL\COCOKIN-AI\images\images\all_cropped_images_by_class\1',
+      'previewColor': Color(0xFFE8C9B5),
+    },
+    {
+      'key': 'sample_medium_warm',
+      'label': 'Wajah 2 (Medium)',
+      'path':
+          r'D:\Semester 5\IPPL\COCOKIN-AI\images\images\all_cropped_images_by_class\4',
+      'previewColor': Color(0xFFC69472),
+    },
+    {
+      'key': 'sample_tan_warm',
+      'label': 'Wajah 3 (Sawo Matang)',
+      'path':
+          r'D:\Semester 5\IPPL\COCOKIN-AI\images\images\all_cropped_images_by_class\6',
+      'previewColor': Color(0xFF9C6B4E),
+    },
+    {
+      'key': 'sample_deep',
+      'label': 'Wajah 4 (Gelap/Deep)',
+      'path':
+          r'D:\Semester 5\IPPL\COCOKIN-AI\images\images\all_cropped_images_by_class\9',
+      'previewColor': Color(0xFF4A3228),
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSampleFromDataset(_sampleFaces[1]);
+  }
+
+  void _loadSampleFromDataset(Map<String, dynamic> sample) {
+    final key = sample['key'] as String;
+    final label = sample['label'] as String;
+    final folderPath = sample['path'] as String;
+
+    Uint8List? bytes;
+    String filePath = '';
+
+    if (!kIsWeb) {
+      try {
+        final dir = Directory(folderPath);
+        if (dir.existsSync()) {
+          final files = dir
+              .listSync()
+              .whereType<File>()
+              .where((f) => f.path.toLowerCase().endsWith('.jpg'))
+              .toList();
+          if (files.isNotEmpty) {
+            filePath = files.first.path;
+            bytes = files.first.readAsBytesSync();
+          }
+        }
+      } catch (_) {}
+    }
+
+    setState(() {
+      _selectedSampleKey = key;
+      _selectedLabel = label;
+      _selectedPath = filePath;
+      _selectedBytes = bytes;
+    });
+  }
+
+  Future<void> _showCustomFilePathDialog() async {
+    final controller = TextEditingController(text: _selectedPath);
+    final chosenPath = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: CocokinColors.bgMain,
+          title: const Text(
+            'Pilih File Foto Wajah (.jpg / .png)',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: CocokinColors.textDark,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Masukkan path file foto dari perangkatmu untuk dianalisis langsung oleh model AI:',
+                style: TextStyle(fontSize: 12, color: CocokinColors.textBody),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: controller,
+                style: const TextStyle(fontSize: 12),
+                decoration: InputDecoration(
+                  hintText: r'C:\Users\...\foto_wajah.jpg',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: CocokinColors.primaryMauve,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Muat Foto'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (chosenPath != null && chosenPath.isNotEmpty && !kIsWeb) {
+      final f = File(chosenPath);
+      if (f.existsSync()) {
+        final bytes = await f.readAsBytes();
+        setState(() {
+          _selectedPath = chosenPath;
+          _selectedBytes = bytes;
+          _selectedLabel = chosenPath.split(Platform.pathSeparator).last;
+          _isPreviewStep = true;
+        });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('File foto tidak ditemukan. Periksa kembali path file.'),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showServerIpDialog() async {
+    final controller = TextEditingController(text: ApiService.serverHost);
+    final chosenHost = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: CocokinColors.bgMain,
+          title: const Text(
+            'Atur IP Server AI (Untuk HP Fisik)',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: CocokinColors.textDark,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '• Gunakan "localhost" jika menjalankan di PC atau HP via kabel USB (adb reverse).\n'
+                '• Gunakan IP Wi-Fi Laptop (contoh: 192.168.1.10) jika HP terhubung via Wi-Fi yang sama.\n'
+                '• Gunakan "10.0.2.2" jika memakai Emulator Android.',
+                style: TextStyle(fontSize: 11.5, color: CocokinColors.textBody),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: controller,
+                style: const TextStyle(fontSize: 12.5),
+                decoration: InputDecoration(
+                  hintText: 'localhost atau 192.168.1.x',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: CocokinColors.primaryMauve,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Simpan IP'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (chosenHost != null && chosenHost.isNotEmpty) {
+      setState(() {
+        ApiService.setServerHost(chosenHost);
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Server AI diarahkan ke: ${ApiService.localAiUrl}'),
+          ),
+        );
+      }
+    }
+  }
 
   void _captureFrame() {
     setState(() {
@@ -27,13 +267,21 @@ class _KameraPageState extends State<KameraPage> {
     });
   }
 
+  Color get _activePreviewSkinColor {
+    final found = _sampleFaces.firstWhere(
+      (s) => s['key'] == _selectedSampleKey,
+      orElse: () => _sampleFaces[1],
+    );
+    return found['previewColor'] as Color;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'COCOKIN COLOR ANALYSIS',
+          'COCOKIN COLOR ANALYSIS (AI CONNECTED)',
           style: TextStyle(
             fontSize: 10.5,
             letterSpacing: 1.2,
@@ -54,11 +302,75 @@ class _KameraPageState extends State<KameraPage> {
         const SizedBox(height: 4),
         Text(
           _isPreviewStep
-              ? 'Pastikan wajahmu terlihat jelas dan pencahayaan sudah merata sebelum dianalisis.'
-              : 'Posisikan wajahmu di dalam panduan agar hasil analisis lebih akurat.',
+              ? 'Foto siap dikirim ke AI Engine untuk ekstraksi Skin Tone (CIE-Lab & ITA) serta Undertone.'
+              : 'Posisikan wajahmu di dalam panduan atau pilih sampel foto wajah asli untuk dianalisis AI.',
           style: const TextStyle(fontSize: 12.5, color: CocokinColors.textBody),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
+
+        // Pilihan Sampel Foto Wajah Asli dari Dataset COCOKIN-AI
+        const Text(
+          'Pilih Foto Wajah untuk Dianalisis AI:',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            color: CocokinColors.textDark,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final sample in _sampleFaces)
+              GestureDetector(
+                onTap: () => _loadSampleFromDataset(sample),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _selectedSampleKey == sample['key']
+                        ? CocokinColors.primaryMauve
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: _selectedSampleKey == sample['key']
+                          ? CocokinColors.primaryMauve
+                          : CocokinColors.borderCard,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 11,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          color: sample['previewColor'] as Color,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        sample['label'] as String,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _selectedSampleKey == sample['key']
+                              ? Colors.white
+                              : CocokinColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
 
         // Bingkai Kamera Live dengan Panduan Oval Wajah (Face Guide Frame)
         Container(
@@ -71,14 +383,19 @@ class _KameraPageState extends State<KameraPage> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Tombol Ikon Kanan Atas (Galeri & Reset Kamera)
+              // Tombol Ikon Kanan Atas (Atur IP Server HP, Galeri & Reset Kamera)
               Positioned(
                 top: 12,
                 right: 12,
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: _captureFrame,
+                      onTap: _showServerIpDialog,
+                      child: _buildSmallCamAction(Icons.settings_ethernet_rounded),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: _showCustomFilePathDialog,
                       child: _buildSmallCamAction(Icons.photo_library_outlined),
                     ),
                     const SizedBox(width: 6),
@@ -90,7 +407,7 @@ class _KameraPageState extends State<KameraPage> {
                 ),
               ),
 
-              // Area Feed Kamera / Pratinjau Foto di Dalam Bingkai Oval
+              // Area Feed Kamera / Pratinjau Foto Asli di Dalam Bingkai Oval
               Container(
                 width: 176,
                 height: 226,
@@ -110,33 +427,41 @@ class _KameraPageState extends State<KameraPage> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Ilustrasi Feed Wajah pada Frame Kamera
-                    Positioned(
-                      bottom: 0,
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 150,
-                            height: 195,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF49332B),
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(80),
+                    if (_selectedBytes != null)
+                      Positioned.fill(
+                        child: Image.memory(
+                          _selectedBytes!,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else
+                      // Ilustrasi Feed Wajah Dinamis mengikuti warna sampel yang dipilih
+                      Positioned(
+                        bottom: 0,
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 150,
+                              height: 195,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF49332B),
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(80),
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Container(
+                                width: 112,
+                                height: 145,
+                                decoration: BoxDecoration(
+                                  color: _activePreviewSkinColor,
+                                  borderRadius: BorderRadius.circular(65),
+                                ),
                               ),
                             ),
-                            alignment: Alignment.center,
-                            child: Container(
-                              width: 112,
-                              height: 145,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE5C8B3),
-                                borderRadius: BorderRadius.circular(65),
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
 
                     // Garis Bantu Tengah Wajah (Crosshair Guide) saat Live Camera
                     if (!_isPreviewStep) ...[
@@ -171,8 +496,8 @@ class _KameraPageState extends State<KameraPage> {
                   ),
                   child: Text(
                     _isPreviewStep
-                        ? 'Foto berhasil diambil! Pastikan pencahayaan cukup'
-                        : 'Posisikan wajah di dalam oval',
+                        ? 'Siap dianalisis: $_selectedLabel'
+                        : 'Aktif: $_selectedLabel',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 11,
@@ -191,7 +516,18 @@ class _KameraPageState extends State<KameraPage> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: widget.onCapture,
+              onPressed: () {
+                widget.onCapture(
+                  KameraCapturePayload(
+                    imagePath: _selectedPath.isNotEmpty
+                        ? _selectedPath
+                        : 'kamera_wajah.png',
+                    imageBytes: _selectedBytes,
+                    sampleKey: _selectedSampleKey,
+                    label: _selectedLabel,
+                  ),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: CocokinColors.primaryMauve,
                 foregroundColor: Colors.white,
@@ -202,7 +538,7 @@ class _KameraPageState extends State<KameraPage> {
                 ),
               ),
               child: const Text(
-                'Gunakan Foto & Mulai Analisis →',
+                'Gunakan Foto & Mulai Analisis AI →',
                 style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
               ),
             ),
@@ -221,7 +557,7 @@ class _KameraPageState extends State<KameraPage> {
                 ),
               ),
               child: const Text(
-                'Ambil Ulang Foto',
+                'Ambil Ulang / Ganti Foto',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),
@@ -300,9 +636,9 @@ class _KameraPageState extends State<KameraPage> {
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: _captureFrame,
+                  onTap: _showCustomFilePathDialog,
                   child: const Text(
-                    'Atau pilih foto dari galeri perangkat',
+                    'Atau muat path file foto dari perangkat',
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w600,
