@@ -6,3 +6,6 @@ build/
 *.iml
 .idea/
 .vscode/
+# Abaikan notebook Python / Jupyter
+*.ipynb
+.ipynb_checkpoints/
