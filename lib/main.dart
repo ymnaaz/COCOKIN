@@ -7,7 +7,9 @@ import 'halaman/hasil_page.dart';
 import 'halaman/rekomendasi_page.dart';
 import 'halaman/detail_produk_page.dart';
 import 'halaman/riwayat_page.dart';
+import 'halaman/profil_page.dart';
 import 'models/product_model.dart';
+import 'services/api_service.dart';
 
 void main() {
   runApp(const CocokinApp());
@@ -56,8 +58,9 @@ class MainMobileShell extends StatefulWidget {
 class _MainMobileShellState extends State<MainMobileShell> {
   String currentPage = 'beranda';
   String _redirectAfterLogin = 'beranda';
-  int bottomNavIndex = 0; // 0: Beranda, 1: Cara Kerja, 2: Tentang
+  int bottomNavIndex = 0;
   String? loggedInUser;
+  bool isPremiumUser = false;
   Map<String, dynamic> selectedProduct = kCatalogProducts.first;
   KameraCapturePayload? _capturedPayload;
   AnalysisResultModel _latestAnalysisResult = const AnalysisResultModel(
@@ -67,6 +70,10 @@ class _MainMobileShellState extends State<MainMobileShell> {
     undertoneHex: 0xFFDEC4A1,
     personalColor: 'Warm Autumn',
   );
+
+  String get _currentUserEmail => loggedInUser != null
+      ? '${loggedInUser!.toLowerCase().replaceAll(' ', '')}@gmail.com'
+      : 'yumna@gmail.com';
 
   void navigateTo(String page) {
     setState(() {
@@ -83,27 +90,35 @@ class _MainMobileShellState extends State<MainMobileShell> {
     setState(() {
       if (currentPage == 'login' || currentPage == 'daftar') {
         currentPage = 'beranda';
+        bottomNavIndex = 0;
       } else if (currentPage == 'kamera') {
         currentPage = 'beranda';
+        bottomNavIndex = 0;
       } else if (currentPage == 'loading') {
         currentPage = 'kamera';
       } else if (currentPage == 'hasil') {
         currentPage = 'kamera';
       } else if (currentPage == 'riwayat') {
-        currentPage = 'hasil';
+        currentPage = 'profil';
+      } else if (currentPage == 'carakerja') {
+        currentPage = 'profil';
       } else if (currentPage == 'rekomendasi') {
-        currentPage = 'hasil';
+        currentPage = 'beranda';
+        bottomNavIndex = 0;
       } else if (currentPage == 'detail_produk') {
         currentPage = 'rekomendasi';
+      } else if (currentPage == 'profil') {
+        currentPage = 'beranda';
+        bottomNavIndex = 0;
       } else {
         currentPage = 'beranda';
+        bottomNavIndex = 0;
       }
     });
   }
 
   String get _activeLandingTab {
-    if (bottomNavIndex == 1) return 'carakerja';
-    if (bottomNavIndex == 2) return 'tentang';
+    if (currentPage == 'carakerja') return 'carakerja';
     return 'beranda';
   }
 
@@ -168,7 +183,7 @@ class _MainMobileShellState extends State<MainMobileShell> {
                 ? Row(
                     children: [
                       GestureDetector(
-                        onTap: () => navigateTo('riwayat'),
+                        onTap: () => navigateTo('profil'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 11,
@@ -275,6 +290,10 @@ class _MainMobileShellState extends State<MainMobileShell> {
         return 'Rekomendasi';
       case 'detail_produk':
         return 'Detail Produk';
+      case 'profil':
+        return 'Akun Saya';
+      case 'carakerja':
+        return 'Cara Kerja';
       default:
         return '';
     }
@@ -283,6 +302,7 @@ class _MainMobileShellState extends State<MainMobileShell> {
   Widget buildPageBody() {
     switch (currentPage) {
       case 'beranda':
+      case 'carakerja':
         return BerandaPage(
           activeTab: _activeLandingTab,
           isLoggedIn: loggedInUser != null,
@@ -331,9 +351,7 @@ class _MainMobileShellState extends State<MainMobileShell> {
       case 'loading':
         return LoadingPage(
           capturePayload: _capturedPayload,
-          userEmail: loggedInUser != null
-              ? '${loggedInUser!.toLowerCase()}@gmail.com'
-              : 'yumna@gmail.com',
+          userEmail: _currentUserEmail,
           onFinish: (result) {
             setState(() {
               _latestAnalysisResult = result;
@@ -344,17 +362,13 @@ class _MainMobileShellState extends State<MainMobileShell> {
       case 'hasil':
         return HasilPage(
           analysisResult: _latestAnalysisResult,
-          userEmail: loggedInUser != null
-              ? '${loggedInUser!.toLowerCase()}@gmail.com'
-              : 'yumna@gmail.com',
+          userEmail: _currentUserEmail,
           onGoToRekomendasi: () => navigateTo('rekomendasi'),
           onGoToRiwayat: () => navigateTo('riwayat'),
         );
       case 'riwayat':
         return RiwayatPage(
-          userEmail: loggedInUser != null
-              ? '${loggedInUser!.toLowerCase()}@gmail.com'
-              : 'yumna@gmail.com',
+          userEmail: _currentUserEmail,
           onGoToRekomendasi: () => navigateTo('rekomendasi'),
           onNewAnalysis: () => navigateTo('kamera'),
         );
@@ -372,6 +386,40 @@ class _MainMobileShellState extends State<MainMobileShell> {
         return DetailProdukPage(
           product: selectedProduct,
         );
+      case 'profil':
+        return ProfilPage(
+          userName: loggedInUser,
+          userEmail: loggedInUser != null ? _currentUserEmail : null,
+          isPremium: isPremiumUser,
+          onLogin: () {
+            _redirectAfterLogin = 'profil';
+            navigateTo('login');
+          },
+          onLogout: () {
+            setState(() {
+              loggedInUser = null;
+              isPremiumUser = false;
+              currentPage = 'beranda';
+            });
+          },
+          onOpenRiwayat: () => navigateTo('riwayat'),
+          onOpenCaraKerja: () => navigateTo('carakerja'),
+          onUnlockPremium: () async {
+            await ApiService.unlockPremium(_currentUserEmail);
+            if (mounted) {
+              setState(() => isPremiumUser = true);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  backgroundColor: CocokinColors.textDark,
+                  content: Text(
+                    'Akses Premium berhasil diaktifkan pada akunmu.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              );
+            }
+          },
+        );
       default:
         return BerandaPage(
           activeTab: _activeLandingTab,
@@ -381,10 +429,8 @@ class _MainMobileShellState extends State<MainMobileShell> {
     }
   }
 
-  // Bottom Navigation Bar Khas Aplikasi HP
+  // Bottom Navigation Bar 4 Tab Standar Aplikasi Mobile
   Widget buildBottomNavBar() {
-    final bool isLanding = currentPage == 'beranda';
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -400,23 +446,11 @@ class _MainMobileShellState extends State<MainMobileShell> {
             icon: Icons.home_outlined,
             activeIcon: Icons.home_rounded,
             label: 'Beranda',
-            active: isLanding && bottomNavIndex == 0,
+            active: currentPage == 'beranda',
             onTap: () {
               setState(() {
                 currentPage = 'beranda';
                 bottomNavIndex = 0;
-              });
-            },
-          ),
-          _buildNavItem(
-            icon: Icons.menu_book_outlined,
-            activeIcon: Icons.menu_book_rounded,
-            label: 'Cara Kerja',
-            active: isLanding && bottomNavIndex == 1,
-            onTap: () {
-              setState(() {
-                currentPage = 'beranda';
-                bottomNavIndex = 1;
               });
             },
           ),
@@ -426,8 +460,7 @@ class _MainMobileShellState extends State<MainMobileShell> {
             label: 'Analisis',
             active: currentPage == 'kamera' ||
                 currentPage == 'loading' ||
-                currentPage == 'hasil' ||
-                currentPage == 'riwayat',
+                currentPage == 'hasil',
             onTap: () => navigateTo('kamera'),
           ),
           _buildNavItem(
@@ -439,14 +472,17 @@ class _MainMobileShellState extends State<MainMobileShell> {
             onTap: () => navigateTo('rekomendasi'),
           ),
           _buildNavItem(
-            icon: Icons.info_outline_rounded,
-            activeIcon: Icons.info_rounded,
-            label: 'Tentang',
-            active: isLanding && bottomNavIndex == 2,
+            icon: Icons.person_outline_rounded,
+            activeIcon: Icons.person_rounded,
+            label: 'Akun',
+            active: currentPage == 'profil' ||
+                currentPage == 'riwayat' ||
+                currentPage == 'carakerja' ||
+                currentPage == 'login' ||
+                currentPage == 'daftar',
             onTap: () {
               setState(() {
-                currentPage = 'beranda';
-                bottomNavIndex = 2;
+                currentPage = 'profil';
               });
             },
           ),
@@ -462,33 +498,39 @@ class _MainMobileShellState extends State<MainMobileShell> {
     required bool active,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              active ? activeIcon : icon,
-              size: 21,
-              color: active
-                  ? CocokinColors.primaryMauve
-                  : CocokinColors.textMuted,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                active ? activeIcon : icon,
+                size: 21,
                 color: active
                     ? CocokinColors.primaryMauve
                     : CocokinColors.textMuted,
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    color: active
+                        ? CocokinColors.primaryMauve
+                        : CocokinColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -497,37 +539,19 @@ class _MainMobileShellState extends State<MainMobileShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF2C2523),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Container(
-            height: double.infinity,
-            decoration: BoxDecoration(
-              color: CocokinColors.bgMain,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  buildMobileAppBar(),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-                      child: buildPageBody(),
-                    ),
-                  ),
-                  buildBottomNavBar(),
-                ],
+      backgroundColor: CocokinColors.bgMain,
+      body: SafeArea(
+        child: Column(
+          children: [
+            buildMobileAppBar(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+                child: buildPageBody(),
               ),
             ),
-          ),
+            buildBottomNavBar(),
+          ],
         ),
       ),
     );
