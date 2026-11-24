@@ -9,3 +9,4 @@ build/
 # Abaikan notebook Python / Jupyter
 *.ipynb
 .ipynb_checkpoints/
+*.log

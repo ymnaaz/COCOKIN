@@ -26,6 +26,8 @@ class _AuthPageState extends State<AuthPage> {
   String? _errorMsg;
   String? _successBanner;
   bool _isSubmitting = false;
+  bool _obscurePass = true;
+  bool _obscureConfirm = true;
 
   Future<void> _handleSubmit() async {
     setState(() {
@@ -252,13 +254,23 @@ class _AuthPageState extends State<AuthPage> {
           _buildTextField(
             _passCtrl,
             isReg ? 'Minimal 8 karakter' : 'Masukkan password',
-            true,
+            _obscurePass,
+            onToggleObscure: () {
+              setState(() => _obscurePass = !_obscurePass);
+            },
           ),
 
           if (isReg) ...[
             const SizedBox(height: 14),
             _buildInputLabel('Konfirmasi kata sandi'),
-            _buildTextField(_confirmCtrl, 'Ulangi kata sandi', true),
+            _buildTextField(
+              _confirmCtrl,
+              'Ulangi kata sandi',
+              _obscureConfirm,
+              onToggleObscure: () {
+                setState(() => _obscureConfirm = !_obscureConfirm);
+              },
+            ),
           ],
 
           const SizedBox(height: 20),
@@ -337,8 +349,9 @@ class _AuthPageState extends State<AuthPage> {
   Widget _buildTextField(
     TextEditingController ctrl,
     String hint,
-    bool obscure,
-  ) {
+    bool obscure, {
+    VoidCallback? onToggleObscure,
+  }) {
     return TextField(
       controller: ctrl,
       obscureText: obscure,
@@ -353,6 +366,18 @@ class _AuthPageState extends State<AuthPage> {
           horizontal: 14,
           vertical: 12,
         ),
+        suffixIcon: onToggleObscure != null
+            ? IconButton(
+                onPressed: onToggleObscure,
+                icon: Icon(
+                  obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 19,
+                  color: CocokinColors.textMuted,
+                ),
+              )
+            : null,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: Color(0xFFB8A69E)),

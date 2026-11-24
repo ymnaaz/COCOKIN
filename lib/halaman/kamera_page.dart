@@ -1,5 +1,4 @@
-import 'dart:io';
-import 'dart:typed_data';
+import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,7 +15,7 @@ class KameraCapturePayload {
     required this.imagePath,
     this.imageBytes,
     this.sampleKey = 'sample_medium_warm',
-    this.label = 'Sampel Wajah Medium Warm',
+    this.label = 'Foto Wajah',
   });
 }
 
@@ -30,104 +29,154 @@ class KameraPage extends StatefulWidget {
 }
 
 class _KameraPageState extends State<KameraPage> {
+  CameraController? _cameraController;
+  List<CameraDescription> _cameras = [];
+  int _selectedCameraIdx = 0;
+  bool _isCameraInitialized = false;
+  bool _isInitializingCamera = true;
+  bool _isTakingPicture = false;
+
   bool _isPreviewStep = false;
-  bool _isCameraActive = true;
   Uint8List? _selectedBytes;
   String _selectedPath = '';
-  String _selectedSampleKey = 'sample_medium_warm';
-  String _selectedLabel = 'Foto Wajah (Medium / Warm)';
+  String _selectedLabel = 'Foto Wajah';
 
-  static const List<Map<String, dynamic>> _sampleFaces = [
-    {
-      'key': 'sample_light',
-      'label': 'Wajah 1 (Terang)',
-      'path':
-          r'D:\Semester 5\IPPL\COCOKIN-AI\images\images\all_cropped_images_by_class\1',
-      'previewColor': Color(0xFFE8C9B5),
-    },
-    {
-      'key': 'sample_medium_warm',
-      'label': 'Wajah 2 (Medium)',
-      'path':
-          r'D:\Semester 5\IPPL\COCOKIN-AI\images\images\all_cropped_images_by_class\4',
-      'previewColor': Color(0xFFC69472),
-    },
-    {
-      'key': 'sample_tan_warm',
-      'label': 'Wajah 3 (Sawo Matang)',
-      'path':
-          r'D:\Semester 5\IPPL\COCOKIN-AI\images\images\all_cropped_images_by_class\6',
-      'previewColor': Color(0xFF9C6B4E),
-    },
-    {
-      'key': 'sample_deep',
-      'label': 'Wajah 4 (Gelap/Deep)',
-      'path':
-          r'D:\Semester 5\IPPL\COCOKIN-AI\images\images\all_cropped_images_by_class\9',
-      'previewColor': Color(0xFF4A3228),
-    },
-  ];
+  final TransformationController _transformController =
+      TransformationController();
 
   @override
   void initState() {
     super.initState();
-    _loadSampleFromDataset(_sampleFaces[1]);
+    _initLiveCamera();
   }
 
-  void _loadSampleFromDataset(Map<String, dynamic> sample) {
-    final key = sample['key'] as String;
-    final label = sample['label'] as String;
-    final folderPath = sample['path'] as String;
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    _transformController.dispose();
+    super.dispose();
+  }
 
-    Uint8List? bytes;
-    String filePath = '';
-
-    if (!kIsWeb) {
-      try {
-        final dir = Directory(folderPath);
-        if (dir.existsSync()) {
-          final files = dir
-              .listSync()
-              .whereType<File>()
-              .where((f) => f.path.toLowerCase().endsWith('.jpg'))
-              .toList();
-          if (files.isNotEmpty) {
-            filePath = files.first.path;
-            bytes = files.first.readAsBytesSync();
-          }
-        }
-      } catch (_) {}
+  Future<void> _initLiveCamera({int? cameraIndex}) async {
+    if (kIsWeb) {
+      setState(() => _isInitializingCamera = false);
+      return;
     }
 
     setState(() {
-      _selectedSampleKey = key;
-      _selectedLabel = label;
-      _selectedPath = filePath;
-      _selectedBytes = bytes;
+      _isInitializingCamera = true;
     });
+
+    try {
+      if (_cameras.isEmpty) {
+        _cameras = await availableCameras();
+      }
+      if (_cameras.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isCameraInitialized = false;
+            _isInitializingCamera = false;
+          });
+        }
+        return;
+      }
+
+      if (cameraIndex != null) {
+        _selectedCameraIdx = cameraIndex % _cameras.length;
+      } else {
+        // Prioritaskan kamera depan (selfie) secara default
+        final frontIdx = _cameras.indexWhere(
+          (c) => c.lensDirection == CameraLensDirection.front,
+        );
+        _selectedCameraIdx = frontIdx != -1 ? frontIdx : 0;
+      }
+
+      await _cameraController?.dispose();
+
+      final controller = CameraController(
+        _cameras[_selectedCameraIdx],
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+
+      _cameraController = controller;
+      await controller.initialize();
+
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = true;
+          _isInitializingCamera = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isCameraInitialized = false;
+          _isInitializingCamera = false;
+        });
+      }
+    }
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _switchCamera() async {
+    if (_cameras.length < 2 || _isInitializingCamera) return;
+    await _initLiveCamera(cameraIndex: _selectedCameraIdx + 1);
+  }
+
+  Future<void> _captureFromLiveCamera() async {
+    if (_isTakingPicture) return;
+
+    // Jika live camera aktif di HP, langsung ambil gambar dari preview oval
+    if (_isCameraInitialized &&
+        _cameraController != null &&
+        _cameraController!.value.isInitialized) {
+      try {
+        setState(() => _isTakingPicture = true);
+        final XFile file = await _cameraController!.takePicture();
+        final bytes = await file.readAsBytes();
+        _transformController.value = Matrix4.identity();
+        if (mounted) {
+          setState(() {
+            _selectedPath = file.path;
+            _selectedBytes = bytes;
+            _selectedLabel = 'Foto Kamera';
+            _isPreviewStep = true;
+            _isTakingPicture = false;
+          });
+        }
+        return;
+      } catch (_) {
+        if (mounted) {
+          setState(() => _isTakingPicture = false);
+        }
+      }
+    }
+
+    // Fallback jika live camera tidak tersedia di perangkat
+    await _pickFromGallery();
+  }
+
+  Future<void> _pickFromGallery() async {
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(
-        source: source,
+        source: ImageSource.gallery,
         maxWidth: 1080,
         maxHeight: 1080,
-        imageQuality: 85,
+        imageQuality: 88,
       );
 
       if (picked != null) {
         final bytes = await picked.readAsBytes();
-        setState(() {
-          _selectedPath = picked.path;
-          _selectedBytes = bytes;
-          _selectedLabel = source == ImageSource.camera
-              ? 'Foto Kamera HP'
-              : 'Foto dari Galeri HP';
-          _isPreviewStep = true;
-          _isCameraActive = true;
-        });
+        _transformController.value = Matrix4.identity();
+        if (mounted) {
+          setState(() {
+            _selectedPath = picked.path;
+            _selectedBytes = bytes;
+            _selectedLabel = 'Foto Galeri';
+            _isPreviewStep = true;
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -135,7 +184,7 @@ class _KameraPageState extends State<KameraPage> {
           SnackBar(
             backgroundColor: CocokinColors.textDark,
             content: Text(
-              'Gagal membuka kamera/galeri: $e',
+              'Tidak dapat membuka galeri: $e',
               style: const TextStyle(fontSize: 12),
             ),
           ),
@@ -143,79 +192,14 @@ class _KameraPageState extends State<KameraPage> {
       }
     }
   }
-    final controller = TextEditingController(text: _selectedPath);
-    final chosenPath = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: CocokinColors.bgMain,
-          title: const Text(
-            'Pilih File Foto Wajah (.jpg / .png)',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: CocokinColors.textDark,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Masukkan path file foto dari perangkatmu untuk dianalisis langsung oleh model AI:',
-                style: TextStyle(fontSize: 12, color: CocokinColors.textBody),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: controller,
-                style: const TextStyle(fontSize: 12),
-                decoration: InputDecoration(
-                  hintText: r'C:\Users\...\foto_wajah.jpg',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: CocokinColors.primaryMauve,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Muat Foto'),
-            ),
-          ],
-        );
-      },
-    );
 
-    if (chosenPath != null && chosenPath.isNotEmpty && !kIsWeb) {
-      final f = File(chosenPath);
-      if (f.existsSync()) {
-        final bytes = await f.readAsBytes();
-        setState(() {
-          _selectedPath = chosenPath;
-          _selectedBytes = bytes;
-          _selectedLabel = chosenPath.split(Platform.pathSeparator).last;
-          _isPreviewStep = true;
-        });
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('File foto tidak ditemukan. Periksa kembali path file.'),
-          ),
-        );
-      }
-    }
+  void _retakePhoto() {
+    _transformController.value = Matrix4.identity();
+    setState(() {
+      _isPreviewStep = false;
+      _selectedBytes = null;
+      _selectedPath = '';
+    });
   }
 
   Future<void> _showServerIpDialog() async {
@@ -226,7 +210,7 @@ class _KameraPageState extends State<KameraPage> {
         return AlertDialog(
           backgroundColor: CocokinColors.bgMain,
           title: const Text(
-            'Atur IP Server AI (Untuk HP Fisik)',
+            'Koneksi Server Analisis',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -238,10 +222,8 @@ class _KameraPageState extends State<KameraPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                '• Gunakan "localhost" jika menjalankan di PC atau HP via kabel USB (adb reverse).\n'
-                '• Gunakan IP Wi-Fi Laptop (contoh: 192.168.1.10) jika HP terhubung via Wi-Fi yang sama.\n'
-                '• Gunakan "10.0.2.2" jika memakai Emulator Android.',
-                style: TextStyle(fontSize: 11.5, color: CocokinColors.textBody),
+                'Masukkan alamat IP laptop jika server analisis dijalankan melalui jaringan Wi-Fi yang sama:',
+                style: TextStyle(fontSize: 12, color: CocokinColors.textBody),
               ),
               const SizedBox(height: 10),
               TextField(
@@ -269,7 +251,7 @@ class _KameraPageState extends State<KameraPage> {
                 backgroundColor: CocokinColors.primaryMauve,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Simpan IP'),
+              child: const Text('Simpan'),
             ),
           ],
         );
@@ -280,35 +262,7 @@ class _KameraPageState extends State<KameraPage> {
       setState(() {
         ApiService.setServerHost(chosenHost);
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Server AI diarahkan ke: ${ApiService.localAiUrl}'),
-          ),
-        );
-      }
     }
-  }
-
-  void _captureFrame() {
-    setState(() {
-      _isPreviewStep = true;
-    });
-  }
-
-  void _retakePhoto() {
-    setState(() {
-      _isPreviewStep = false;
-      _isCameraActive = true;
-    });
-  }
-
-  Color get _activePreviewSkinColor {
-    final found = _sampleFaces.firstWhere(
-      (s) => s['key'] == _selectedSampleKey,
-      orElse: () => _sampleFaces[1],
-    );
-    return found['previewColor'] as Color;
   }
 
   @override
@@ -316,18 +270,21 @@ class _KameraPageState extends State<KameraPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'COCOKIN COLOR ANALYSIS (AI CONNECTED)',
-          style: TextStyle(
-            fontSize: 10.5,
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.w700,
-            color: CocokinColors.primaryMauve,
+        GestureDetector(
+          onLongPress: _showServerIpDialog,
+          child: const Text(
+            'COCOKIN COLOR ANALYSIS',
+            style: TextStyle(
+              fontSize: 10.5,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w700,
+              color: CocokinColors.primaryMauve,
+            ),
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          _isPreviewStep ? 'Periksa hasil fotomu' : 'Ambil foto wajahmu',
+          _isPreviewStep ? 'Sesuaikan posisi fotomu' : 'Ambil foto wajahmu',
           style: const TextStyle(
             fontFamily: 'Georgia',
             fontSize: 25,
@@ -335,214 +292,144 @@ class _KameraPageState extends State<KameraPage> {
             color: CocokinColors.textDark,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           _isPreviewStep
-              ? 'Foto siap dikirim ke AI Engine untuk ekstraksi Skin Tone (CIE-Lab & ITA) serta Undertone.'
-              : 'Posisikan wajahmu di dalam panduan atau pilih sampel foto wajah asli untuk dianalisis AI.',
-          style: const TextStyle(fontSize: 12.5, color: CocokinColors.textBody),
-        ),
-        const SizedBox(height: 14),
-
-        // Pilihan Sampel Foto Wajah Asli dari Dataset COCOKIN-AI
-        const Text(
-          'Pilih Foto Wajah untuk Dianalisis AI:',
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
-            color: CocokinColors.textDark,
+              ? 'Geser atau cubit foto dengan dua jari agar wajah pas di dalam bingkai oval sebelum memulai analisis.'
+              : 'Posisikan wajah di tengah bingkai oval dengan pencahayaan yang merata.',
+          style: const TextStyle(
+            fontSize: 12.5,
+            height: 1.45,
+            color: CocokinColors.textBody,
           ),
         ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final sample in _sampleFaces)
-              GestureDetector(
-                onTap: () => _loadSampleFromDataset(sample),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _selectedSampleKey == sample['key']
-                        ? CocokinColors.primaryMauve
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(99),
-                    border: Border.all(
-                      color: _selectedSampleKey == sample['key']
-                          ? CocokinColors.primaryMauve
-                          : CocokinColors.borderCard,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 11,
-                        height: 11,
-                        decoration: BoxDecoration(
-                          color: sample['previewColor'] as Color,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        sample['label'] as String,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: _selectedSampleKey == sample['key']
-                              ? Colors.white
-                              : CocokinColors.textDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
 
-        // Bingkai Kamera Live dengan Panduan Oval Wajah (Face Guide Frame)
+        // Area Bingkai Kamera dengan Panduan Kepala Oval
         Container(
           width: double.infinity,
-          height: 310,
+          height: 360,
           decoration: BoxDecoration(
             color: const Color(0xFFDFD3C8),
             borderRadius: BorderRadius.circular(24),
           ),
+          clipBehavior: Clip.antiAlias,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Tombol Ikon Kanan Atas (Atur IP Server HP, Galeri HP, & Reset Kamera)
+              // 1. Tampilan Live Kamera atau Foto yang Bisa Digeser (InteractiveViewer)
+              if (_isPreviewStep && _selectedBytes != null)
+                Positioned.fill(
+                  child: InteractiveViewer(
+                    transformationController: _transformController,
+                    panEnabled: true,
+                    scaleEnabled: true,
+                    minScale: 0.8,
+                    maxScale: 4.0,
+                    boundaryMargin: const EdgeInsets.all(120),
+                    child: Image.memory(
+                      _selectedBytes!,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                )
+              else if (_isCameraInitialized &&
+                  _cameraController != null &&
+                  _cameraController!.value.isInitialized)
+                Positioned.fill(
+                  child: FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: _cameraController!.value.previewSize?.height ?? 720,
+                      height: _cameraController!.value.previewSize?.width ?? 1280,
+                      child: CameraPreview(_cameraController!),
+                    ),
+                  ),
+                )
+              else if (_isInitializingCamera)
+                const Center(
+                  child: CircularProgressIndicator(
+                    color: CocokinColors.primaryMauve,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              else
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      'Kamera belum aktif.\nKetuk tombol Galeri di bawah untuk memilih foto wajah.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: CocokinColors.textBody,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // 2. Overlay Gelap Tipis di Luar Oval + Garis Panduan Kepala Oval
+              IgnorePointer(
+                child: CustomPaint(
+                  size: const Size(double.infinity, 360),
+                  painter: _OvalGuidePainter(isPreview: _isPreviewStep),
+                ),
+              ),
+
+              // 3. Tombol Kecil di Kanan Atas (Ganti Kamera Depan/Belakang atau Reset Posisi Foto)
               Positioned(
                 top: 12,
                 right: 12,
                 child: Row(
                   children: [
-                    GestureDetector(
-                      onTap: _showServerIpDialog,
-                      child: _buildSmallCamAction(Icons.settings_ethernet_rounded),
-                    ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: () => _pickImage(ImageSource.gallery),
-                      child: _buildSmallCamAction(Icons.photo_library_outlined),
-                    ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: () => _pickImage(ImageSource.camera),
-                      child: _buildSmallCamAction(Icons.photo_camera_front_outlined),
-                    ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: _retakePhoto,
-                      child: _buildSmallCamAction(Icons.refresh_rounded),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Area Feed Kamera / Pratinjau Foto Asli di Dalam Bingkai Oval
-              Container(
-                width: 176,
-                height: 226,
-                decoration: BoxDecoration(
-                  color: _isCameraActive
-                      ? const Color(0xFF2B211E)
-                      : const Color(0xFFDFD3C8),
-                  borderRadius: BorderRadius.circular(110),
-                  border: Border.all(
-                    color: _isPreviewStep
-                        ? const Color(0xFF5FA869)
-                        : Colors.white.withValues(alpha: 0.92),
-                    width: 2.5,
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    if (_selectedBytes != null)
-                      Positioned.fill(
-                        child: Image.memory(
-                          _selectedBytes!,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    else
-                      // Ilustrasi Feed Wajah Dinamis mengikuti warna sampel yang dipilih
-                      Positioned(
-                        bottom: 0,
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 150,
-                              height: 195,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF49332B),
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(80),
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: Container(
-                                width: 112,
-                                height: 145,
-                                decoration: BoxDecoration(
-                                  color: _activePreviewSkinColor,
-                                  borderRadius: BorderRadius.circular(65),
-                                ),
-                              ),
-                            ),
-                          ],
+                    if (!_isPreviewStep && _cameras.length > 1)
+                      GestureDetector(
+                        onTap: _switchCamera,
+                        child: _buildSmallCamAction(
+                          Icons.cameraswitch_outlined,
                         ),
                       ),
-
-                    // Garis Bantu Tengah Wajah (Crosshair Guide) saat Live Camera
-                    if (!_isPreviewStep) ...[
-                      Container(
-                        width: 1,
-                        height: 226,
-                        color: Colors.white.withValues(alpha: 0.25),
+                    if (_isPreviewStep) ...[
+                      GestureDetector(
+                        onTap: () {
+                          _transformController.value = Matrix4.identity();
+                        },
+                        child: _buildSmallCamAction(
+                          Icons.center_focus_strong_outlined,
+                        ),
                       ),
-                      Container(
-                        width: 176,
-                        height: 1,
-                        color: Colors.white.withValues(alpha: 0.25),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: _retakePhoto,
+                        child: _buildSmallCamAction(Icons.refresh_rounded),
                       ),
                     ],
                   ],
                 ),
               ),
 
-              // Pill Status di Bawah Bingkai Oval
+              // 4. Keterangan Panduan di Bawah Oval
               Positioned(
                 bottom: 14,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _isPreviewStep
-                        ? const Color(0xFF2E6B38).withValues(alpha: 0.9)
-                        : const Color(0xFF5C443C).withValues(alpha: 0.82),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    _isPreviewStep
-                        ? 'Siap dianalisis: $_selectedLabel'
-                        : 'Aktif: $_selectedLabel',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
+                child: IgnorePointer(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4A332D).withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      _isPreviewStep
+                          ? 'Geser atau cubit foto untuk menyesuaikan posisi'
+                          : 'Arahkan wajah ke dalam garis oval',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -552,7 +439,7 @@ class _KameraPageState extends State<KameraPage> {
         ),
         const SizedBox(height: 18),
 
-        // Jika sudah ambil foto -> Tampilkan tombol Pratinjau Foto (Gunakan Foto vs Ambil Ulang)
+        // Jika sudah ambil foto -> Tombol Lanjut Analisis atau Ambil Ulang
         if (_isPreviewStep) ...[
           SizedBox(
             width: double.infinity,
@@ -564,7 +451,6 @@ class _KameraPageState extends State<KameraPage> {
                         ? _selectedPath
                         : 'kamera_wajah.png',
                     imageBytes: _selectedBytes,
-                    sampleKey: _selectedSampleKey,
                     label: _selectedLabel,
                   ),
                 );
@@ -579,7 +465,7 @@ class _KameraPageState extends State<KameraPage> {
                 ),
               ),
               child: const Text(
-                'Gunakan Foto & Mulai Analisis AI →',
+                'Gunakan Foto & Analisis →',
                 style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
               ),
             ),
@@ -598,7 +484,7 @@ class _KameraPageState extends State<KameraPage> {
                 ),
               ),
               child: const Text(
-                'Ambil Ulang / Ganti Foto',
+                'Ambil Ulang Foto',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),
@@ -619,7 +505,7 @@ class _KameraPageState extends State<KameraPage> {
               Expanded(
                 child: _buildGuideTip(
                   Icons.center_focus_strong_outlined,
-                  'Wajah menghadap kamera',
+                  'Hadap kamera',
                   'Pastikan wajah terlihat jelas',
                 ),
               ),
@@ -628,127 +514,132 @@ class _KameraPageState extends State<KameraPage> {
                 child: _buildGuideTip(
                   Icons.flash_off_outlined,
                   'Tanpa filter',
-                  'Gunakan wajah asli tanpa filter',
+                  'Gunakan warna kulit asli',
                 ),
               ),
             ],
           ),
           const SizedBox(height: 22),
 
-          // Tombol Bulat Ambil Foto + Opsi Galeri HP
-          Center(
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+          // Tombol Shutter Kamera & Pilih Galeri yang Bersih
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Tombol Pilih dari Galeri
+              GestureDetector(
+                onTap: _pickFromGallery,
+                child: Column(
                   children: [
-                    // Tombol Galeri HP
-                    GestureDetector(
-                      onTap: () => _pickImage(ImageSource.gallery),
-                      child: Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: CocokinColors.borderLight,
-                            width: 2,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.photo_library_outlined,
-                          color: CocokinColors.primaryMauve,
-                          size: 20,
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: CocokinColors.borderLight,
+                          width: 1.5,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 20),
-
-                    // Tombol Ambil Foto Kamera HP
-                    GestureDetector(
-                      onTap: () => _pickImage(ImageSource.camera),
-                      child: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: CocokinColors.primaryMauve,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFE6D2CE),
-                            width: 4,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: CocokinColors.primaryMauve.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt_rounded,
-                          color: Colors.white,
-                          size: 26,
-                        ),
+                      child: const Icon(
+                        Icons.photo_library_outlined,
+                        color: CocokinColors.primaryMauve,
+                        size: 20,
                       ),
                     ),
-                    const SizedBox(width: 20),
-
-                    // Tombol Simulasi / Path Komputer
-                    GestureDetector(
-                      onTap: _captureFrame,
-                      child: Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: CocokinColors.borderLight,
-                            width: 2,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.check_circle_outline_rounded,
-                          color: CocokinColors.primaryMauve,
-                          size: 20,
-                        ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Galeri',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: CocokinColors.textBody,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Ambil Foto Kamera atau Pilih Galeri HP',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: CocokinColors.textDark,
-                  ),
-                ),
-                const Text(
-                  'Kiri: Galeri  |  Tengah: Kamera HP  |  Kanan: Gunakan Sampel',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: CocokinColors.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                GestureDetector(
-                  onTap: _showCustomFilePathDialog,
-                  child: const Text(
-                    'Atau masukkan path file foto manual',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: CocokinColors.primaryMauve,
-                      decoration: TextDecoration.underline,
+              ),
+              const SizedBox(width: 28),
+
+              // Tombol Jepret Kamera Utama
+              GestureDetector(
+                onTap: _captureFromLiveCamera,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: CocokinColors.primaryMauve,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFE6D2CE),
+                          width: 4,
+                        ),
+                      ),
+                      child: _isTakingPicture
+                          ? const Padding(
+                              padding: EdgeInsets.all(18),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.camera_alt_rounded,
+                              color: Colors.white,
+                              size: 26,
+                            ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Ambil Foto',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: CocokinColors.textDark,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 28),
+
+              // Tombol Putar Kamera (Depan/Belakang)
+              GestureDetector(
+                onTap: _switchCamera,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: CocokinColors.borderLight,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.flip_camera_android_outlined,
+                        color: CocokinColors.primaryMauve,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Putar',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: CocokinColors.textBody,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ],
@@ -757,13 +648,13 @@ class _KameraPageState extends State<KameraPage> {
 
   Widget _buildSmallCamAction(IconData icon) {
     return Container(
-      width: 30,
-      height: 30,
+      width: 32,
+      height: 32,
       decoration: BoxDecoration(
         color: const Color(0xFF4A332D).withValues(alpha: 0.65),
         shape: BoxShape.circle,
       ),
-      child: Icon(icon, size: 15, color: Colors.white),
+      child: Icon(icon, size: 16, color: Colors.white),
     );
   }
 
@@ -797,5 +688,64 @@ class _KameraPageState extends State<KameraPage> {
         ),
       ],
     );
+  }
+}
+
+/// Painter untuk menggambar bingkai panduan kepala oval di tengah kamera
+class _OvalGuidePainter extends CustomPainter {
+  final bool isPreview;
+
+  const _OvalGuidePainter({required this.isPreview});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2 - 8);
+    final ovalRect = Rect.fromCenter(
+      center: center,
+      width: 195,
+      height: 250,
+    );
+
+    // Area luar oval agak digelapkan sedikit agar fokus pada wajah di tengah
+    final bgPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final ovalPath = Path()..addOval(ovalRect);
+    final maskPath = Path.combine(PathOperation.difference, bgPath, ovalPath);
+
+    final maskPaint = Paint()
+      ..color = const Color(0xFF2B211E).withValues(alpha: 0.32)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(maskPath, maskPaint);
+
+    // Garis tepi oval panduan kepala
+    final borderPaint = Paint()
+      ..color = isPreview
+          ? const Color(0xFF5FA869)
+          : Colors.white.withValues(alpha: 0.9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
+    canvas.drawOval(ovalRect, borderPaint);
+
+    // Garis bantu tengah tipis saat membidik wajah
+    if (!isPreview) {
+      final guidePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.25)
+        ..strokeWidth = 1.0;
+
+      canvas.drawLine(
+        Offset(center.dx, ovalRect.top + 12),
+        Offset(center.dx, ovalRect.bottom - 12),
+        guidePaint,
+      );
+      canvas.drawLine(
+        Offset(ovalRect.left + 12, center.dy),
+        Offset(ovalRect.right - 12, center.dy),
+        guidePaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _OvalGuidePainter oldDelegate) {
+    return oldDelegate.isPreview != isPreview;
   }
 }
