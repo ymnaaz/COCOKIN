@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../main.dart';
 import '../services/api_service.dart';
 
@@ -106,7 +107,42 @@ class _KameraPageState extends State<KameraPage> {
     });
   }
 
-  Future<void> _showCustomFilePathDialog() async {
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _selectedPath = picked.path;
+          _selectedBytes = bytes;
+          _selectedLabel = source == ImageSource.camera
+              ? 'Foto Kamera HP'
+              : 'Foto dari Galeri HP';
+          _isPreviewStep = true;
+          _isCameraActive = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: CocokinColors.textDark,
+            content: Text(
+              'Gagal membuka kamera/galeri: $e',
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        );
+      }
+    }
+  }
     final controller = TextEditingController(text: _selectedPath);
     final chosenPath = await showDialog<String>(
       context: context,
@@ -383,7 +419,7 @@ class _KameraPageState extends State<KameraPage> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Tombol Ikon Kanan Atas (Atur IP Server HP, Galeri & Reset Kamera)
+              // Tombol Ikon Kanan Atas (Atur IP Server HP, Galeri HP, & Reset Kamera)
               Positioned(
                 top: 12,
                 right: 12,
@@ -395,8 +431,13 @@ class _KameraPageState extends State<KameraPage> {
                     ),
                     const SizedBox(width: 6),
                     GestureDetector(
-                      onTap: _showCustomFilePathDialog,
+                      onTap: () => _pickImage(ImageSource.gallery),
                       child: _buildSmallCamAction(Icons.photo_library_outlined),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () => _pickImage(ImageSource.camera),
+                      child: _buildSmallCamAction(Icons.photo_camera_front_outlined),
                     ),
                     const SizedBox(width: 6),
                     GestureDetector(
@@ -594,33 +635,92 @@ class _KameraPageState extends State<KameraPage> {
           ),
           const SizedBox(height: 22),
 
-          // Tombol Bulat Ambil Foto + Pilih dari Galeri
+          // Tombol Bulat Ambil Foto + Opsi Galeri HP
           Center(
             child: Column(
               children: [
-                GestureDetector(
-                  onTap: _captureFrame,
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: CocokinColors.primaryMauve,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFE6D2CE),
-                        width: 4,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Tombol Galeri HP
+                    GestureDetector(
+                      onTap: () => _pickImage(ImageSource.gallery),
+                      child: Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: CocokinColors.borderLight,
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.photo_library_outlined,
+                          color: CocokinColors.primaryMauve,
+                          size: 20,
+                        ),
                       ),
                     ),
-                    child: const Icon(
-                      Icons.camera_alt_outlined,
-                      color: Colors.white,
-                      size: 24,
+                    const SizedBox(width: 20),
+
+                    // Tombol Ambil Foto Kamera HP
+                    GestureDetector(
+                      onTap: () => _pickImage(ImageSource.camera),
+                      child: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: CocokinColors.primaryMauve,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFE6D2CE),
+                            width: 4,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: CocokinColors.primaryMauve.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 20),
+
+                    // Tombol Simulasi / Path Komputer
+                    GestureDetector(
+                      onTap: _captureFrame,
+                      child: Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: CocokinColors.borderLight,
+                            width: 2,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.check_circle_outline_rounded,
+                          color: CocokinColors.primaryMauve,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 const Text(
-                  'Ambil Foto',
+                  'Ambil Foto Kamera atau Pilih Galeri HP',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -628,19 +728,19 @@ class _KameraPageState extends State<KameraPage> {
                   ),
                 ),
                 const Text(
-                  'Pastikan wajah terlihat jelas',
+                  'Kiri: Galeri  |  Tengah: Kamera HP  |  Kanan: Gunakan Sampel',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10.5,
                     color: CocokinColors.textMuted,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 GestureDetector(
                   onTap: _showCustomFilePathDialog,
                   child: const Text(
-                    'Atau muat path file foto dari perangkat',
+                    'Atau masukkan path file foto manual',
                     style: TextStyle(
-                      fontSize: 11.5,
+                      fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: CocokinColors.primaryMauve,
                       decoration: TextDecoration.underline,
