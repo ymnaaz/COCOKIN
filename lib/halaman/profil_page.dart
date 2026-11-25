@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../services/api_service.dart';
+import '../services/premium_payment_sheet.dart';
 
 class ProfilPage extends StatefulWidget {
   final String? userName;
@@ -119,70 +120,11 @@ class _ProfilPageState extends State<ProfilPage> {
   }
 
   void _showPremiumSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: CocokinColors.bgMain,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 26),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'AKSES PREMIUM',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w700,
-                  color: CocokinColors.primaryMauve,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Buka Hasil Personal Color Lengkap',
-                style: TextStyle(
-                  fontFamily: 'Georgia',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: CocokinColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildBenefitRow('Membuka kategori Personal Color musiman'),
-              const SizedBox(height: 8),
-              _buildBenefitRow('Akses palet warna lengkap hasil analisis'),
-              const SizedBox(height: 8),
-              _buildBenefitRow('Simpan riwayat hasil tes ke akun tanpa batas'),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    widget.onUnlockPremium();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: CocokinColors.primaryMauve,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    'Aktifkan Premium Sekarang',
-                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
+    PremiumPaymentSheet.show(
+      context,
+      userEmail: widget.userEmail ?? 'yumna@gmail.com',
+      onPaymentSuccess: () {
+        widget.onUnlockPremium();
       },
     );
   }

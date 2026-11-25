@@ -32,6 +32,7 @@ class ApiService {
   static const String supabaseAnonKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6Z2Z4cWlrbmRjdWhyZXBjampkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUyNjY2MzksImV4cCI6MjExMDg0MjYzOX0.rhVkZHUNZC3F3_cstYN2EWM47yrU1EvgkcRjqDYSXcQ';
   static const String restBaseUrl = '$supabaseUrl/rest/v1';
+  static const String functionsBaseUrl = '$supabaseUrl/functions/v1';
 
   static void _attachSupabaseHeaders(
     HttpHeaders headers, {
@@ -439,7 +440,107 @@ class ApiService {
     return [];
   }
 
-  /// 6. Buka Kunci Fitur Premium (Mendukung userId int maupun email String)
+  /// 6A. Buat Tagihan Pembayaran Midtrans Sandbox melalui Edge Function Server
+  /// Paket yang didukung: 'bulanan' (Rp19.000) atau 'lifetime' (Rp49.000)
+  static Future<Map<String, dynamic>> createSandboxPayment({
+    required String email,
+    required String paket,
+  }) async {
+    final cleanEmail = email.trim().toLowerCase();
+
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 6);
+      final req = await client.postUrl(
+        Uri.parse('$functionsBaseUrl/buat-pembayaran'),
+      );
+      _attachSupabaseHeaders(req.headers);
+      req.add(
+        utf8.encode(
+          jsonEncode({
+            'email': cleanEmail,
+            'paket': paket,
+          }),
+        ),
+      );
+
+      final res = await req.close();
+      final body = await res.transform(utf8.decoder).join();
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+
+      if (res.statusCode == 200 && decoded['success'] == true) {
+        return {
+          'success': true,
+          'isEdgeLive': true,
+          'mode': decoded['mode'] ?? 'sandbox',
+          'order_id': decoded['order_id'],
+          'paket': decoded['paket'],
+          'nominal': decoded['nominal'],
+          'snap_token': decoded['snap_token'],
+          'redirect_url': decoded['redirect_url'],
+        };
+      }
+
+      return {
+        'success': false,
+        'isEdgeLive': false,
+        'message':
+            decoded['message'] ?? 'Server pembayaran belum dikonfigurasi.',
+      };
+    } catch (_) {
+      return {
+        'success': false,
+        'isEdgeLive': false,
+        'message': 'Edge Function pembayaran belum di-deploy atau tidak terjangkau.',
+      };
+    }
+  }
+
+  /// 6B. Cek Status Tagihan Pembayaran Midtrans Sandbox ke Server
+  /// Status dikembalikan oleh server setelah mengecek langsung ke Midtrans Core API
+  static Future<Map<String, dynamic>> checkSandboxPaymentStatus({
+    required String orderId,
+  }) async {
+    try {
+      final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 6);
+      final req = await client.postUrl(
+        Uri.parse('$functionsBaseUrl/cek-pembayaran'),
+      );
+      _attachSupabaseHeaders(req.headers);
+      req.add(utf8.encode(jsonEncode({'order_id': orderId})));
+
+      final res = await req.close();
+      final body = await res.transform(utf8.decoder).join();
+      final decoded = jsonDecode(body) as Map<String, dynamic>;
+
+      if (res.statusCode == 200 && decoded['success'] == true) {
+        return {
+          'success': true,
+          'order_id': decoded['order_id'],
+          'status': decoded['status'],
+          'premium_aktif': decoded['premium_aktif'] == true,
+          'premium_hingga': decoded['premium_hingga'],
+        };
+      }
+
+      return {
+        'success': false,
+        'status': 'pending',
+        'premium_aktif': false,
+        'message': decoded['message'] ?? 'Gagal mengecek status pembayaran.',
+      };
+    } catch (_) {
+      return {
+        'success': false,
+        'status': 'pending',
+        'premium_aktif': false,
+        'message': 'Tidak dapat menghubungi server pembayaran.',
+      };
+    }
+  }
+
+  /// 6C. Buka Kunci Fitur Premium (Fallback Demo / Local Backend)
   static Future<bool> unlockPremium(dynamic userIdentifier) async {
     final email = userIdentifier is String ? userIdentifier : 'yumna@gmail.com';
     final userId = userIdentifier is int ? userIdentifier : 1;

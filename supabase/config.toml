@@ -1,0 +1,6 @@
+# Konfigurasi fungsi server Cocokin.
+# Webhook Midtrans tidak membawa token login, jadi verifikasi JWT dimatikan
+# khusus untuk fungsi ini. Keamanannya dijaga lewat signature Midtrans.
+
+[functions.notifikasi-midtrans]
+verify_jwt = false

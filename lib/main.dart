@@ -363,6 +363,12 @@ class _MainMobileShellState extends State<MainMobileShell> {
         return HasilPage(
           analysisResult: _latestAnalysisResult,
           userEmail: _currentUserEmail,
+          isPremiumUser: isPremiumUser,
+          onPremiumActivated: () {
+            setState(() {
+              isPremiumUser = true;
+            });
+          },
           onGoToRekomendasi: () => navigateTo('rekomendasi'),
           onGoToRiwayat: () => navigateTo('riwayat'),
         );
@@ -404,15 +410,14 @@ class _MainMobileShellState extends State<MainMobileShell> {
           },
           onOpenRiwayat: () => navigateTo('riwayat'),
           onOpenCaraKerja: () => navigateTo('carakerja'),
-          onUnlockPremium: () async {
-            await ApiService.unlockPremium(_currentUserEmail);
+          onUnlockPremium: () {
             if (mounted) {
               setState(() => isPremiumUser = true);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   backgroundColor: CocokinColors.textDark,
                   content: Text(
-                    'Akses Premium berhasil diaktifkan pada akunmu.',
+                    'Pembayaran Sandbox terverifikasi! Cocokin Premium telah aktif.',
                     style: TextStyle(fontSize: 12),
                   ),
                 ),

@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../models/product_model.dart';
 import '../services/api_service.dart';
+import '../services/premium_payment_sheet.dart';
 
 class HasilPage extends StatefulWidget {
   final AnalysisResultModel analysisResult;
   final String userEmail;
+  final bool isPremiumUser;
+  final VoidCallback? onPremiumActivated;
   final VoidCallback onGoToRekomendasi;
   final VoidCallback? onGoToRiwayat;
 
@@ -14,6 +17,8 @@ class HasilPage extends StatefulWidget {
     super.key,
     required this.analysisResult,
     this.userEmail = 'yumna@gmail.com',
+    this.isPremiumUser = false,
+    this.onPremiumActivated,
     required this.onGoToRekomendasi,
     this.onGoToRiwayat,
   });
@@ -26,11 +31,40 @@ class _HasilPageState extends State<HasilPage> {
   bool _isPremiumUnlocked = false;
   bool _isSaved = false;
 
-  Future<void> _handleUnlockPremium() async {
-    await ApiService.unlockPremium(widget.userEmail);
-    if (mounted) {
-      setState(() => _isPremiumUnlocked = true);
+  @override
+  void initState() {
+    super.initState();
+    _isPremiumUnlocked = widget.isPremiumUser;
+  }
+
+  @override
+  void didUpdateWidget(covariant HasilPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isPremiumUser != oldWidget.isPremiumUser) {
+      _isPremiumUnlocked = widget.isPremiumUser;
     }
+  }
+
+  Future<void> _handleUnlockPremium() async {
+    await PremiumPaymentSheet.show(
+      context,
+      userEmail: widget.userEmail,
+      onPaymentSuccess: () {
+        if (mounted) {
+          setState(() => _isPremiumUnlocked = true);
+        }
+        widget.onPremiumActivated?.call();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: CocokinColors.textDark,
+            content: Text(
+              'Pembayaran Sandbox terverifikasi! Cocokin Premium telah aktif.',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _handleSaveResult() async {
